@@ -1,9 +1,9 @@
-import random
-from .utils import (load, GREEN, GRAY, BOLD, RESET,
-                    clear, game_header, praise, console, streak_display, summary)
+import random, time
+from . import utils as U
+from .utils import SETTINGS, BOLD, RESET
 
-_FEM_ENDINGS  = ("ción", "sión", "dad", "tad", "tud", "eza", "ura")
-_MASC_A_ENDS  = ("ma", "pa", "ta", "ca")
+_FEM_ENDINGS = ("ción", "sión", "dad", "tad", "tud", "eza", "ura")
+_MASC_A_ENDS = ("ma", "pa", "ta", "ca")
 
 def _infer_gender(word):
     if any(word.endswith(e) for e in _FEM_ENDINGS):
@@ -15,7 +15,7 @@ def _infer_gender(word):
     return None
 
 def play():
-    all_words = load("words.json")
+    all_words = U.load("words.json")
     nouns = [
         {"es": w["es"], "en": w["en"], "gender": _infer_gender(w["es"])}
         for w in all_words
@@ -23,12 +23,14 @@ def play():
     ]
 
     correct = total = streak = best_streak = 0
+    rounds  = SETTINGS["rounds"]
+    start   = time.time()
 
     while True:
         word = random.choice(nouns)
 
-        clear()
-        game_header("GENDER DRILL", correct, total, streak)
+        U.clear()
+        U.game_header("GENDER DRILL", correct, total, streak, best=best_streak)
         print(f" {BOLD}{word['es']}{RESET}  ({word['en']})\n")
         print(f"  1. el  (masculine)")
         print(f"  2. la  (feminine)\n")
@@ -45,18 +47,25 @@ def play():
             input(" Enter to continue...")
             continue
 
-        total += 1
-        article = "el" if word["gender"] == "m" else "la"
+        total   += 1
+        article  = "el" if word["gender"] == "m" else "la"
         if guess == word["gender"]:
-            correct += 1
-            streak += 1
+            correct  += 1
+            streak   += 1
+            is_new    = streak > best_streak
             best_streak = max(best_streak, streak)
-            print(f"\n {GREEN}{praise()}  →  {article} {word['es']}{RESET}{streak_display(streak)}")
+            print(f"\n {U.GREEN}{U.praise()}  →  {article} {word['es']}{RESET}{U.streak_display(streak)}")
+            if is_new and streak >= 3:
+                print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
         else:
             streak = 0
-            print(f"\n {GRAY}It's  {BOLD}{article} {word['es']}{RESET}  {GRAY}{console()}{RESET}")
+            print(f"\n {U.GRAY}It's  {BOLD}{article} {word['es']}{RESET}  {U.GRAY}{U.console()}{RESET}")
+
+        if rounds > 0 and total >= rounds:
+            print(f"\n {U.CYAN}{BOLD}Round complete!{RESET}")
+            break
 
         input("\n Enter to continue...")
 
-    summary(correct, total, best_streak)
+    U.summary(correct, total, best_streak, elapsed=int(time.time() - start))
     input(" Enter to return to menu...")

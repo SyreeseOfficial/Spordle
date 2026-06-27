@@ -62,10 +62,11 @@ Run with: `python3 spordle.py` from `/home/sy/Documents/Code/Spordle/`
 spordle.py              ← entry point, numbered menu
 games/
   __init__.py
-  utils.py              ← load(), colors, strip_accents(), hr()
-  translation.py        ← flashcard ES↔EN, self-rated y/n
+  utils.py              ← load(), colors, themes, streak/summary helpers, yn_input()
+  settings.py           ← settings menu (difficulty, theme, rounds, direction, hints, rank)
+  translation.py        ← flashcard ES↔EN, self-rated Y/n, hints, word rank
   wordle.py             ← 6-guess, color feedback, keyboard tracker, daily+random modes
-  conjugation.py        ← verb+tense+person drill, accents optional
+  conjugation.py        ← verb+tense+person drill, accents optional, paradigm on wrong
   gender.py             ← m/f noun drill, heuristic-based (2076 nouns in pool)
   false_friends.py      ← reveal-style, 40 hand-curated traps
 data/
@@ -76,12 +77,12 @@ data/
 ```
 
 **What's next (v2 / polish):**
-- Play it and see what feels off — translation answer quality may need cleanup (some glosses are messy)
-- Add Hangman (easy, reuses words_5letter.json)
-- Add Anagram (easy, reuses words_5letter.json)
-- Stats persistence across sessions (write to `~/.spordle_stats.json`)
-- Accent mark support (Option A: strip-and-compare, already done in conjugation.py — extend to word list)
-- Gender data could be improved: heuristic works but misses -e endings and has edge cases
+- Play it — translation gloss quality may need cleanup (some definitions are messy from Wiktionary parse)
+- Add Hangman (easy, reuses `words_5letter.json`)
+- Add Anagram (easy, reuses `words_5letter.json`)
+- Stats persistence across sessions (`~/.spordle_stats.json`)
+- Accent mark support (strip-and-compare already done in conjugation — extend to word list)
+- Gender heuristic misses -e endings and has edge cases — could use a curated list instead
 
 ---
 
@@ -100,6 +101,26 @@ data/
 - Built all 5 v1 games + entry point + shared utils
 - All imports and data loading smoke-tested and passing
 - Ready to play: `python3 spordle.py`
+
+### 2026-06-27 — Session 4
+
+- Streak always visible in header (0, 1, 2... not just 3+) with color coding: gray→green→yellow+bold
+- Round progress bar shown in header when round limit is active
+- Best streak shown next to current streak in header every round
+- New personal best notification fires inline when you beat your best (≥3 streak)
+- Session timer tracked per game, shown in summary (e.g. "Time: 4:32")
+
+### 2026-06-27 — Session 3
+
+- Enter now defaults to "y" everywhere (yn_input helper)
+- Added 4 color themes: default / ocean / sunset / mono — live switching in Settings
+- Settings menu expanded: difficulty, theme, round limit (5/10/25/∞), translation direction, hints, word rank
+- Round limit: shows "Round X/Y" progress counter; "Round complete!" when done
+- Translation: respects direction preference from settings (skip the ask), hints (first letter), word frequency rank after reveal
+- Conjugation: shows full paradigm table for that tense on wrong answer
+- Summary screen now grades the session (Flawless / Strong / Good effort / ¡Ánimo!)
+- All games refactored to `U.GREEN` style color access so themes propagate live
+- Wordle color logic refactored to use string names ("green"/"yellow"/"gray") instead of ANSI codes as dict keys
 
 ---
 

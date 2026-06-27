@@ -1,41 +1,50 @@
-import random
-from .utils import (load, GREEN, YELLOW, GRAY, BOLD, RESET,
-                    clear, game_header, praise, console, streak_display, summary)
+import random, time
+from . import utils as U
+from .utils import SETTINGS, BOLD, RESET
 
 def play():
-    friends = load("false_friends.json")
+    friends = U.load("false_friends.json")
     random.shuffle(friends)
 
     correct = total = streak = best_streak = 0
+    rounds  = SETTINGS["rounds"]
+    start   = time.time()
 
     for entry in friends:
-        clear()
-        game_header("FALSE FRIENDS", correct, total, streak)
+        U.clear()
+        U.game_header("FALSE FRIENDS", correct, total, streak, best=best_streak)
         print(f" {BOLD}{entry['es']}{RESET}\n")
-        print(f" {GRAY}Looks like:{RESET}  \"{entry['looks_like']}\"\n")
+        print(f" {U.GRAY}Looks like:{RESET}  \"{entry['looks_like']}\"\n")
 
-        inp = input(" What does it ACTUALLY mean?  [Enter to reveal  /  q = menu] > ").strip().lower()
+        inp = U.yn_input(" What does it ACTUALLY mean?  [Enter to reveal  /  q = menu] > ")
         if inp == "q":
             break
 
-        print(f"\n {YELLOW}Actually:{RESET}  {BOLD}{entry['real_en']}{RESET}\n")
-        print(f" {GRAY}Remember:{RESET}  {entry['es']}  ≠  {entry['looks_like']}\n")
+        print(f"\n {U.YELLOW}Actually:{RESET}  {BOLD}{entry['real_en']}{RESET}")
+        print(f" {U.GRAY}Remember:{RESET}  {entry['es']}  ≠  {entry['looks_like']}\n")
 
-        rating = input(" Did you know it? [y/n] > ").strip().lower()
+        rating = U.yn_input(" Did you know it? [Y/n] > ")
         if rating == "q":
             break
 
         total += 1
-        if rating == "y":
-            correct += 1
-            streak += 1
+        if rating:
+            correct  += 1
+            streak   += 1
+            is_new    = streak > best_streak
             best_streak = max(best_streak, streak)
-            print(f"\n {GREEN}{praise()}{RESET}{streak_display(streak)}")
+            print(f"\n {U.GREEN}{U.praise()}{RESET}{U.streak_display(streak)}")
+            if is_new and streak >= 3:
+                print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
         else:
             streak = 0
-            print(f"\n {GRAY}{console()}{RESET}")
+            print(f"\n {U.GRAY}{U.console()}{RESET}")
+
+        if rounds > 0 and total >= rounds:
+            print(f"\n {U.CYAN}{BOLD}Round complete!{RESET}")
+            break
 
         input("\n Enter to continue...")
 
-    summary(correct, total, best_streak)
+    U.summary(correct, total, best_streak, elapsed=int(time.time() - start))
     input(" Enter to return to menu...")
