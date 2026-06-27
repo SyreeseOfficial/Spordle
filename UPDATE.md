@@ -1,0 +1,106 @@
+# Spordle — Spanish CLI Practice Tool
+
+## Project Overview
+
+Multi-game Spanish language practice tool for the terminal. Target user: intermediate Spanish learner.
+
+**Runtime:** Python, stdlib only.
+**Word list:** Bilingual (Spanish ↔ English pairs). 5-letter subset for Wordle/Hangman/Anagram. Full vocab for everything else.
+**Accent marks:** Option C for v1 — no accented words in pool. Removes input friction, vocab practice still works. Revisit later.
+
+---
+
+## Game List
+
+| Game | What it drills | Priority | Notes |
+|---|---|---|---|
+| **Translation** | Vocab recall (ES→EN or EN→ES) | v1 | Most educationally dense |
+| **Wordle** | Spelling + vocab recognition | v1 | 5-letter words, 6 guesses, color feedback |
+| **Verb Conjugation** | Give verb + tense + person → type conjugation | v1 | Hardest to build; needs conjugation dataset. Highest ROI for intermediate learners |
+| **El/La Gender Drill** | Noun → type m or f | v1 | Trivial to build on top of word list |
+| **False Friends** | Tricky words that look like English but aren't | v1 | Small curated list, fast to build. e.g. embarazada ≠ embarrassed |
+| **Hangman** | Vocab with partial letter info | v2 | Easy add-on, reuses word list |
+| **Anagram** | Unscramble a Spanish word | v2 | Fun filler, reuses word list, low priority |
+
+---
+
+## Key Decisions
+
+1. **Accent marks:** No accented words in v1 word pool (Option C). Revisit for v2.
+2. **Word list:** Done — 5,000 frequency-ranked bilingual pairs.
+3. **Verb conjugation data:** Done — 637 verbs across 5 tenses.
+4. **False friends list:** Done — 40 hand-curated entries.
+
+---
+
+## Data Files (`data/`)
+
+| File | Contents | Count |
+|---|---|---|
+| `words.json` | Bilingual ES↔EN pairs, frequency-ranked. Fields: `es`, `en`, `pos` | 5,000 words |
+| `words_5letter.json` | Subset of words.json, 5-letter ASCII-only Spanish words (for Wordle/Hangman/Anagram) | 584 words |
+| `verbs.json` | 637 verbs with conjugations. Fields: `en`, `tenses → {person: form}` | 637 verbs |
+| `false_friends.json` | Hand-curated false friends. Fields: `es`, `looks_like`, `real_en` | 40 entries |
+
+**Sources:**
+- Words: [doozan/spanish_data](https://github.com/doozan/spanish_data) (Wiktionary-based), filtered to top 5000 by frequency
+- Verbs: [ghidinelli/fred-jehle-spanish-verbs](https://github.com/ghidinelli/fred-jehle-spanish-verbs) (Fred Jehle database)
+- False friends: hand-curated
+
+**Verb tenses included:** Indicativo/Presente, Indicativo/Pretérito, Indicativo/Imperfecto, Indicativo/Futuro, Subjuntivo/Presente
+
+---
+
+## Where We Left Off (resume here)
+
+**All v1 games are built and smoke-tested. Ready to run and play.**
+
+Run with: `python3 spordle.py` from `/home/sy/Documents/Code/Spordle/`
+
+**Current file structure:**
+```
+spordle.py              ← entry point, numbered menu
+games/
+  __init__.py
+  utils.py              ← load(), colors, strip_accents(), hr()
+  translation.py        ← flashcard ES↔EN, self-rated y/n
+  wordle.py             ← 6-guess, color feedback, keyboard tracker, daily+random modes
+  conjugation.py        ← verb+tense+person drill, accents optional
+  gender.py             ← m/f noun drill, heuristic-based (2076 nouns in pool)
+  false_friends.py      ← reveal-style, 40 hand-curated traps
+data/
+  words.json
+  words_5letter.json
+  verbs.json
+  false_friends.json
+```
+
+**What's next (v2 / polish):**
+- Play it and see what feels off — translation answer quality may need cleanup (some glosses are messy)
+- Add Hangman (easy, reuses words_5letter.json)
+- Add Anagram (easy, reuses words_5letter.json)
+- Stats persistence across sessions (write to `~/.spordle_stats.json`)
+- Accent mark support (Option A: strip-and-compare, already done in conjugation.py — extend to word list)
+- Gender data could be improved: heuristic works but misses -e endings and has edge cases
+
+---
+
+## Session Log
+
+### 2026-06-27 — Session 1
+
+- Decided on multi-game suite (started as Wordle-only)
+- 7 games total: 5 in v1, 2 in v2
+- User is intermediate Spanish level
+- App name: **Spordle**
+- Sourced and processed all data files
+
+### 2026-06-27 — Session 2
+
+- Built all 5 v1 games + entry point + shared utils
+- All imports and data loading smoke-tested and passing
+- Ready to play: `python3 spordle.py`
+
+---
+
+*Update this file whenever direction changes, decisions are made, or significant features are added.*
