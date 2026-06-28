@@ -69,6 +69,9 @@ games/
   conjugation.py        ← verb+tense+person drill, accents optional, paradigm on wrong
   gender.py             ← m/f noun drill, heuristic-based (2076 nouns in pool)
   false_friends.py      ← reveal-style, 40 hand-curated traps
+  rapid_fire.py         ← timed translation (15/30/60s), pick time at game start
+  hangman.py            ← ASCII gallows, 6 guesses, 5-letter words
+  anagram.py            ← scrambled Spanish word + English hint, unscramble it
 data/
   words.json
   words_5letter.json
@@ -78,11 +81,10 @@ data/
 
 **What's next (v2 / polish):**
 - Play it — translation gloss quality may need cleanup (some definitions are messy from Wiktionary parse)
-- Add Hangman (easy, reuses `words_5letter.json`)
-- Add Anagram (easy, reuses `words_5letter.json`)
 - Stats persistence across sessions (`~/.spordle_stats.json`)
 - Accent mark support (strip-and-compare already done in conjugation — extend to word list)
 - Gender heuristic misses -e endings and has edge cases — could use a curated list instead
+- Number Drill game (procedural, no data needed — show 47, type "cuarenta y siete")
 
 ---
 
@@ -101,6 +103,14 @@ data/
 - Built all 5 v1 games + entry point + shared utils
 - All imports and data loading smoke-tested and passing
 - Ready to play: `python3 spordle.py`
+
+### 2026-06-27 — Session 5
+
+- Added Rapid Fire: timed translation (15/30/60 sec), prompted at game start, shows correct/min rate
+- Added Hangman: ASCII art gallows, 6 wrong guesses, streak tracking, reveals full word on loss
+- Added Anagram: scrambled 5-letter word + English meaning shown, unscramble it
+- Menu expanded to 9 games
+- Anagram explanation: scrambled letters of a Spanish word — e.g. `R L A O B` → type `arbol`
 
 ### 2026-06-27 — Session 4
 

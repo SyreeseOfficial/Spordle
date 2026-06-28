@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-from games import translation, wordle, conjugation, gender, false_friends, settings
-from games.utils import SETTINGS, BOLD, GRAY, CYAN, RESET, clear
+from games import (translation, wordle, conjugation, gender,
+                   false_friends, rapid_fire, hangman, anagram, settings)
+from games import utils as U
 
 GAMES = [
     ("Translation",      translation.play),
@@ -8,31 +9,36 @@ GAMES = [
     ("Verb Conjugation", conjugation.play),
     ("Gender Drill",     gender.play),
     ("False Friends",    false_friends.play),
+    ("Rapid Fire",       rapid_fire.play),
+    ("Hangman",          hangman.play),
+    ("Anagram",          anagram.play),
     ("Settings",         settings.play),
 ]
 
 def menu():
-    clear()
-    diff = SETTINGS["difficulty"].upper()
-    print(f"\n{BOLD}╔══════════════════════════════╗{RESET}")
-    print(f"{BOLD}║      S P O R D L E          ║{RESET}")
-    print(f"{BOLD}║   Spanish Practice CLI      ║{RESET}")
-    print(f"{BOLD}╠══════════════════════════════╣{RESET}")
+    U.clear()
+    diff = U.SETTINGS["difficulty"].upper()
+    print(f"\n{U.BOLD}╔════════════════════════════════╗{U.RESET}")
+    print(f"{U.BOLD}║       S P O R D L E           ║{U.RESET}")
+    print(f"{U.BOLD}║    Spanish Practice CLI       ║{U.RESET}")
+    print(f"{U.BOLD}╠════════════════════════════════╣{U.RESET}")
     for i, (name, _) in enumerate(GAMES, 1):
         is_settings = name == "Settings"
-        label = f"{name}  {GRAY}[{diff}]{RESET}" if is_settings else name
-        print(f"{BOLD}║{RESET}  {i}. {label:<38}{BOLD}║{RESET}" if is_settings
-              else f"{BOLD}║{RESET}  {i}. {name:<26}{BOLD}║{RESET}")
-    print(f"{BOLD}║{RESET}                              {BOLD}║{RESET}")
-    print(f"{BOLD}║{RESET}  {GRAY}q. Quit{RESET}                       {BOLD}║{RESET}")
-    print(f"{BOLD}╚══════════════════════════════╝{RESET}")
+        if is_settings:
+            label = f"{name}  {U.GRAY}[{diff}]{U.RESET}"
+            print(f"{U.BOLD}║{U.RESET}  {i}. {label:<40}{U.BOLD}║{U.RESET}")
+        else:
+            print(f"{U.BOLD}║{U.RESET}  {i}. {name:<28}{U.BOLD}║{U.RESET}")
+    print(f"{U.BOLD}║{U.RESET}                                {U.BOLD}║{U.RESET}")
+    print(f"{U.BOLD}║{U.RESET}  {U.GRAY}q. Quit{U.RESET}                         {U.BOLD}║{U.RESET}")
+    print(f"{U.BOLD}╚════════════════════════════════╝{U.RESET}")
     return input("\n> ").strip().lower()
 
 def main():
     while True:
         choice = menu()
         if choice in ("q", "quit", "exit"):
-            clear()
+            U.clear()
             print("\n ¡Hasta luego!\n")
             break
         if choice.isdigit() and 1 <= int(choice) <= len(GAMES):
