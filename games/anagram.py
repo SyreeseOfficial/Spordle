@@ -36,7 +36,8 @@ def play():
             break
 
         total += 1
-        if guess == target:
+        ok    = (guess == target)
+        if ok:
             correct += 1
             streak  += 1
             is_new   = streak > best_streak
@@ -44,6 +45,7 @@ def play():
             print(f"\n {U.GREEN}{U.praise()}  →  {target}{RESET}{U.streak_display(streak)}")
             if is_new and streak >= 3:
                 print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
+            U.streak_milestone(streak)
         else:
             streak = 0
             print(f"\n {U.GRAY}Answer: {BOLD}{target}{RESET}  {U.GRAY}{U.console()}{RESET}")
@@ -52,7 +54,7 @@ def play():
             print(f"\n {U.CYAN}{BOLD}Round complete!{RESET}")
             break
 
-        input("\n Enter to continue...")
+        U.pause(ok=ok)
 
     S.update("anagram", correct, total, best_streak)
     U.summary(correct, total, best_streak, elapsed=int(time.time() - start))

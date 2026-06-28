@@ -27,12 +27,17 @@ def play():
     U.clear()
     print(f"\n{BOLD} RAPID FIRE{RESET}")
     U.hr()
-    print(" Answer as many as you can before time runs out.\n")
-    print("  1. 15 seconds  — Sprint")
-    print("  2. 30 seconds  — Standard")
-    print("  3. 60 seconds  — Endurance\n")
-    choice = input(" [1/2/3, default 2] > ").strip()
-    limit  = _TIMES.get(int(choice) if choice in ("1","2","3") else 2, 30)
+
+    if SETTINGS["rf_time"] > 0:
+        limit = SETTINGS["rf_time"]
+        print(f" {SETTINGS['rf_time']}s round  {U.GRAY}(change in Settings → Rapid Fire Time){RESET}\n")
+    else:
+        print(" Answer as many as you can before time runs out.\n")
+        print("  1. 15 seconds  — Sprint")
+        print("  2. 30 seconds  — Standard")
+        print("  3. 60 seconds  — Endurance\n")
+        choice = input(" [1/2/3, default 2] > ").strip()
+        limit  = _TIMES.get(int(choice) if choice in ("1","2","3") else 2, 30)
 
     direction = SETTINGS["direction"]
     if direction == "ask":

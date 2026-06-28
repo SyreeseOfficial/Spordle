@@ -3,15 +3,26 @@ from . import utils as U
 from . import stats as S
 from .utils import SETTINGS, POOL, BOLD, RESET
 
-def _hearts(lives, total=3):
-    return U.GREEN + "♥ " * lives + U.GRAY + "♡ " * (total - lives) + RESET
+def _hearts(lives, max_lives):
+    return U.GREEN + "♥ " * lives + U.GRAY + "♡ " * (max_lives - lives) + RESET
+
+def _header(lives, max_lives, correct):
+    diff     = SETTINGS["difficulty"].upper()
+    diff_col = U.GREEN if diff == "EASY" else U.YELLOW if diff == "MEDIUM" else "\033[91m"
+    w        = U.terminal_width()
+    visible  = f"ROGUELIKE  [{diff}]"
+    pad      = " " * max(0, (w - len(visible)) // 2)
+    print(f"\n{pad}{BOLD}ROGUELIKE{RESET}  [{diff_col}{diff}{RESET}]")
+    print(f" {_hearts(lives, max_lives)}   {U.CYAN}score {BOLD}{correct}{RESET}")
+    U.hr()
 
 def play():
     all_words = U.load("words.json")
     pool_size = POOL[SETTINGS["difficulty"]]
     words     = all_words[:pool_size]
 
-    lives       = 3
+    max_lives   = SETTINGS["rl_lives"]
+    lives       = max_lives
     correct     = 0
     total       = 0
     streak      = 0
@@ -24,9 +35,7 @@ def play():
         answer = word["en"]
 
         U.clear()
-        print(f"\n{BOLD} ROGUELIKE  [{SETTINGS['difficulty'].upper()}]{RESET}")
-        print(f" {_hearts(lives)}   {U.CYAN}score {BOLD}{correct}{RESET}")
-        U.hr()
+        _header(lives, max_lives, correct)
         print(f" {BOLD}{prompt}{RESET}\n")
 
         inp = U.yn_input(" [Enter to reveal  /  q = quit] > ")
@@ -44,13 +53,14 @@ def play():
             streak  += 1
             best_streak = max(best_streak, streak)
             print(f"\n {U.GREEN}+1  {U.praise()}{RESET}{U.streak_display(streak)}")
-            input("\n Enter to continue...")
+            U.streak_milestone(streak)
+            U.pause(ok=True)
         else:
             streak = 0
             lives -= 1
             if lives > 0:
                 print(f"\n {U.GRAY}Nope — {BOLD}{answer}{RESET}")
-                print(f" {_hearts(lives)} remaining")
+                print(f" {_hearts(lives, max_lives)} remaining")
                 input("\n Enter to continue...")
             else:
                 U.clear()

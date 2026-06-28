@@ -60,20 +60,24 @@ def play():
         print(f" Tense:  {BOLD}{label}{RESET}")
         print(f" Person: {BOLD}{person}{RESET}\n")
 
-        guess = input(" [q = menu] > ").strip().lower()
-        if guess == "q":
+        guess = input(" [q = menu] > ").strip()
+        if guess.lower() == "q":
             break
 
         total += 1
-        if U.strip_accents(guess) == U.strip_accents(answer.lower()):
+        was_correct = U.match(guess, answer)
+        if was_correct:
             correct  += 1
             streak   += 1
             is_new    = streak > best_streak
             best_streak = max(best_streak, streak)
-            note = f"  {U.GRAY}(full: {answer}){RESET}" if guess != answer.lower() else ""
-            print(f"\n {U.GREEN}{U.praise()}{RESET}{note}{U.streak_display(streak)}")
+            note = f"  {U.GRAY}(full: {answer}){RESET}" if not U.match(guess, answer) else ""
+            # show exact form if user skipped accent
+            exact_note = f"  {U.GRAY}(full: {answer}){RESET}" if guess.lower() != answer.lower() else ""
+            print(f"\n {U.GREEN}{U.praise()}{RESET}{exact_note}{U.streak_display(streak)}")
             if is_new and streak >= 3:
                 print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
+            U.streak_milestone(streak)
         else:
             streak = 0
             print(f"\n {U.GRAY}Answer: {BOLD}{answer}{RESET}  {U.GRAY}{U.console()}{RESET}")
@@ -83,7 +87,7 @@ def play():
             print(f"\n {U.CYAN}{BOLD}Round complete!{RESET}")
             break
 
-        input("\n Enter to continue...")
+        U.pause(ok=was_correct)
 
     S.update("conjugation", correct, total, best_streak)
     U.summary(correct, total, best_streak, elapsed=int(time.time() - start))

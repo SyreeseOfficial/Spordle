@@ -43,6 +43,12 @@ def update(game, correct, total, best_streak=0, **extra):
 def reset():
     _save(_blank())
 
+def set_list(game, key, items):
+    data = load()
+    data.setdefault(game, {})
+    data[game][key] = items
+    _save(data)
+
 def show():
     data = load()
     U.clear()

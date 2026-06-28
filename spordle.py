@@ -50,6 +50,7 @@ def menu():
     return input("\n > ").strip().lower()
 
 def main():
+    U.banner()
     while True:
         choice = menu()
         if choice in ("q", "quit", "exit"):

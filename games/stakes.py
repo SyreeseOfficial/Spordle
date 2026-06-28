@@ -37,9 +37,14 @@ def play():
         answer = word["en"] if es_to_en else word["es"]
 
         U.clear()
+        diff     = SETTINGS["difficulty"].upper()
+        diff_col = U.GREEN if diff == "EASY" else U.YELLOW if diff == "MEDIUM" else "\033[91m"
+        w        = U.terminal_width()
+        visible  = f"HIGH STAKES  [{diff}]"
+        pad      = " " * max(0, (w - len(visible)) // 2)
         chip_col = U.GREEN if chips >= 100 else U.YELLOW if chips >= 50 else U.GRAY
         don_tag  = f"  {U.YELLOW}{BOLD}⚡ DOUBLE-OR-NOTHING{RESET}" if don_active else ""
-        print(f"\n{BOLD} HIGH STAKES  [{SETTINGS['difficulty'].upper()}]{RESET}")
+        print(f"\n{pad}{BOLD}HIGH STAKES{RESET}  [{diff_col}{diff}{RESET}]")
         U.hr()
         print(f" {chip_col}chips: {BOLD}{chips}{RESET}{don_tag}")
         score_str = f"{correct}/{total}" if total else "—/—"
@@ -78,13 +83,12 @@ def play():
             chips       += effective
             peak_chips   = max(peak_chips, chips)
             print(f"\n {U.GREEN}+{effective} chips  →  {BOLD}{chips}{RESET}{U.streak_display(streak)}")
-            if streak > best_streak - 1 and streak >= 3:
-                pass  # already shown via streak_display
+            U.streak_milestone(streak)
             offer = input(f"\n {U.YELLOW}⚡ Double-or-nothing next? [d / Enter to skip]{RESET} > ").strip().lower()
             if offer == "d":
                 don_active = True
                 print(f" {U.YELLOW}Stakes doubled for next round!{RESET}")
-            input("\n Enter to continue...")
+            U.pause(ok=True)
         else:
             streak  = 0
             chips  -= effective

@@ -84,6 +84,7 @@ def play():
             print(f" {U.GREEN}{BOLD}{U.praise()}  →  {target} = {word_map[target]}{RESET}{U.streak_display(streak)}")
             if is_new and streak >= 3:
                 print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
+            U.streak_milestone(streak)
         else:
             losses += 1
             streak  = 0

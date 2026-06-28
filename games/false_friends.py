@@ -37,6 +37,7 @@ def play():
             print(f"\n {U.GREEN}{U.praise()}{RESET}{U.streak_display(streak)}")
             if is_new and streak >= 3:
                 print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
+            U.streak_milestone(streak)
         else:
             streak = 0
             print(f"\n {U.GRAY}{U.console()}{RESET}")
@@ -45,7 +46,7 @@ def play():
             print(f"\n {U.CYAN}{BOLD}Round complete!{RESET}")
             break
 
-        input("\n Enter to continue...")
+        U.pause(ok=rating)
 
     S.update("false_friends", correct, total, best_streak)
     U.summary(correct, total, best_streak, elapsed=int(time.time() - start))

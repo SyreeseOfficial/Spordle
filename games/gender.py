@@ -58,6 +58,7 @@ def play():
             print(f"\n {U.GREEN}{U.praise()}  →  {article} {word['es']}{RESET}{U.streak_display(streak)}")
             if is_new and streak >= 3:
                 print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
+            U.streak_milestone(streak)
         else:
             streak = 0
             print(f"\n {U.GRAY}It's  {BOLD}{article} {word['es']}{RESET}  {U.GRAY}{U.console()}{RESET}")
@@ -66,7 +67,7 @@ def play():
             print(f"\n {U.CYAN}{BOLD}Round complete!{RESET}")
             break
 
-        input("\n Enter to continue...")
+        U.pause(ok=(guess == word["gender"]))
 
     S.update("gender", correct, total, best_streak)
     U.summary(correct, total, best_streak, elapsed=int(time.time() - start))

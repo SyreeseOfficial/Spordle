@@ -35,7 +35,12 @@ def play():
         answer = word["en"] if es_to_en else word["es"]
 
         U.clear()
-        print(f"\n{BOLD} PUSH YOUR LUCK  [{SETTINGS['difficulty'].upper()}]{RESET}")
+        diff     = SETTINGS["difficulty"].upper()
+        diff_col = U.GREEN if diff == "EASY" else U.YELLOW if diff == "MEDIUM" else "\033[91m"
+        w        = U.terminal_width()
+        visible  = f"PUSH YOUR LUCK  [{diff}]"
+        pad      = " " * max(0, (w - len(visible)) // 2)
+        print(f"\n{pad}{BOLD}PUSH YOUR LUCK{RESET}  [{diff_col}{diff}{RESET}]")
         U.hr()
         mult_col = f"{U.YELLOW}{BOLD}" if multiplier > 2 else (U.YELLOW if multiplier > 1 else U.GRAY)
         print(f" {U.GREEN}banked: {BOLD}{banked}{RESET}   "
@@ -77,7 +82,7 @@ def play():
             push_pile  = 0
             multiplier = 1
 
-        input("\n Enter to continue...")
+        U.pause(ok=rating)
 
     S.update("push_your_luck", correct, total, best_run=banked)
     U.summary(correct, total, 0, elapsed=int(time.time() - start))
