@@ -1,5 +1,6 @@
 import time, random
 from . import utils as U
+from . import stats as S
 from .utils import SETTINGS, POOL, BOLD, RESET
 
 _TIMES = {1: 15, 2: 30, 3: 60}
@@ -99,4 +100,5 @@ def play():
     elif pct >= 60:                print(f"  {U.YELLOW}Good pace! Keep pushing.{RESET}\n")
     else:                          print(f"  {U.GRAY}Speed comes with practice!{RESET}\n")
 
+    S.update("rapid_fire", correct, total, best_score=correct, best_per_min=per_min)
     input(" Enter to return to menu...")

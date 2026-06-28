@@ -30,6 +30,7 @@ SETTINGS = {
     "direction":  "ask",      # "ask" | "es_en" | "en_es"
     "hints":      False,      # show first letter before reveal in translation
     "show_rank":  False,      # show word frequency rank after reveal
+    "verb_type":  "all",      # "all" | "irregular" | "regular"
 }
 
 POOL    = {"easy": 500,  "medium": 2000, "hard": 5000}

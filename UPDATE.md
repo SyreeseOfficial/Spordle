@@ -59,19 +59,25 @@ Run with: `python3 spordle.py` from `/home/sy/Documents/Code/Spordle/`
 
 **Current file structure:**
 ```
-spordle.py              ← entry point, numbered menu
+spordle.py              ← entry point, 15-item menu with quest progress indicator
 games/
   __init__.py
-  utils.py              ← load(), colors, themes, streak/summary helpers, yn_input()
-  settings.py           ← settings menu (difficulty, theme, rounds, direction, hints, rank)
-  translation.py        ← flashcard ES↔EN, self-rated Y/n, hints, word rank
+  utils.py              ← colors, themes, streak/summary helpers, yn_input(), SETTINGS
+  stats.py              ← persistent stats (~/.spordle_stats.json), show(), reset()
+  quests.py             ← daily quests (~/.spordle_quests.json), 3/day from pool of 13
+  settings.py           ← settings menu (difficulty, theme, rounds, direction, hints, rank, verb type, reset)
+  translation.py        ← flashcard ES↔EN, hints, word rank, TILT mechanic
   wordle.py             ← 6-guess, color feedback, keyboard tracker, daily+random modes
-  conjugation.py        ← verb+tense+person drill, accents optional, paradigm on wrong
-  gender.py             ← m/f noun drill, heuristic-based (2076 nouns in pool)
+  conjugation.py        ← verb+tense+person drill, accents optional, verb type filter
+  gender.py             ← m/f noun drill, heuristic-based
   false_friends.py      ← reveal-style, 40 hand-curated traps
-  rapid_fire.py         ← timed translation (15/30/60s), pick time at game start
+  rapid_fire.py         ← timed translation (15/30/60s)
   hangman.py            ← ASCII gallows, 6 guesses, 5-letter words
-  anagram.py            ← scrambled Spanish word + English hint, unscramble it
+  anagram.py            ← scrambled Spanish word + English hint
+  number_drill.py       ← show a number, type it in Spanish (0-1000 by difficulty)
+  roguelike.py          ← 3 lives, wrong = lose a life, chase a high score
+  push_your_luck.py     ← bank points safely or push for multiplier, wrong = lose pile
+  stakes.py             ← wager chips (1-5) on each answer + double-or-nothing offers
 data/
   words.json
   words_5letter.json
@@ -79,12 +85,9 @@ data/
   false_friends.json
 ```
 
-**What's next (v2 / polish):**
-- Play it — translation gloss quality may need cleanup (some definitions are messy from Wiktionary parse)
-- Stats persistence across sessions (`~/.spordle_stats.json`)
-- Accent mark support (strip-and-compare already done in conjugation — extend to word list)
-- Gender heuristic misses -e endings and has edge cases — could use a curated list instead
-- Number Drill game (procedural, no data needed — show 47, type "cuarenta y siete")
+**Known gaps:**
+- Translation gloss quality uneven (Wiktionary parse artifacts)
+- Gender heuristic misses -e endings and some exceptions
 
 ---
 
@@ -103,6 +106,21 @@ data/
 - Built all 5 v1 games + entry point + shared utils
 - All imports and data loading smoke-tested and passing
 - Ready to play: `python3 spordle.py`
+
+### 2026-06-28 — Session 7
+
+**Gambling + addiction update:**
+
+- **Roguelike** (game 10): 3 lives (♥♥♥), wrong answer costs a life, run ends at 0. Chase best score. Loss aversion loop.
+- **Push Your Luck** (game 11): bank points safely or push for an increasing multiplier. Wrong answer loses the whole push pile. Bank/push choice after every correct answer.
+- **High Stakes** (game 12): bet 1-5 chips per question on your confidence. Double-or-nothing offer after each correct answer (doubles both gain and risk next round). Start with 100 chips, bust = game over.
+- **Daily Quests** (game 13): 3 quests generated fresh each day from a pool of 13. Progress tracked vs stats snapshot at quest-gen time. Quest progress shown live in the main menu header (⚡ 0/3).
+- **Tilt mechanic** in Translation: 3 consecutive wrong answers → TILT fires, next 5 questions draw from top-200 easiest words. Prevents frustration exits.
+- **Persistent stats** (game 14 / My Stats): all 12 games tracked to `~/.spordle_stats.json`. Per-game: rounds, correct, best streak. Roguelike: best run. Push Your Luck: best banked. High Stakes: peak chips.
+- **Verb type filter** (Settings 7): filter Conjugation to irregular/regular/all. Detected via present-tense yo-form heuristic (190 irregular, 447 regular out of 637).
+- **Number Drill** (game 9): type any number 0-1000 in Spanish. Difficulty controls range. Accents optional.
+- **Reset Stats** (Settings 8): wipes `~/.spordle_stats.json` after confirmation.
+- Menu now shows gambling section separator and quest indicator in header.
 
 ### 2026-06-27 — Session 5
 

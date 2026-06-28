@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from games import (translation, wordle, conjugation, gender,
-                   false_friends, rapid_fire, hangman, anagram, settings)
+                   false_friends, rapid_fire, hangman, anagram,
+                   number_drill, roguelike, push_your_luck, stakes,
+                   quests, settings, stats)
 from games import utils as U
 
 GAMES = [
@@ -12,27 +14,40 @@ GAMES = [
     ("Rapid Fire",       rapid_fire.play),
     ("Hangman",          hangman.play),
     ("Anagram",          anagram.play),
+    ("Number Drill",     number_drill.play),
+
+    ("Roguelike",        roguelike.play),
+    ("Push Your Luck",   push_your_luck.play),
+    ("High Stakes",      stakes.play),
+
+    ("Daily Quests",     quests.show),
+    ("My Stats",         stats.show),
     ("Settings",         settings.play),
 ]
 
 def menu():
     U.clear()
-    diff = U.SETTINGS["difficulty"].upper()
-    print(f"\n{U.BOLD}╔════════════════════════════════╗{U.RESET}")
-    print(f"{U.BOLD}║       S P O R D L E           ║{U.RESET}")
-    print(f"{U.BOLD}║    Spanish Practice CLI       ║{U.RESET}")
-    print(f"{U.BOLD}╠════════════════════════════════╣{U.RESET}")
+    diff       = U.SETTINGS["difficulty"].upper()
+    quest_list = quests.get()
+    done       = sum(1 for *_, d in quest_list if d)
+    if done == 3:
+        q_str = f"   {U.GREEN}{U.BOLD}⚡ 3/3 quests!{U.RESET}"
+    elif done > 0:
+        q_str = f"   {U.YELLOW}⚡ {done}/3 quests{U.RESET}"
+    else:
+        q_str = f"   {U.GRAY}⚡ 0/3 quests{U.RESET}"
+
+    print(f"\n{U.BOLD} S P O R D L E{U.RESET}   {U.GRAY}[{diff}]{U.RESET}{q_str}")
+    U.hr()
     for i, (name, _) in enumerate(GAMES, 1):
-        is_settings = name == "Settings"
-        if is_settings:
-            label = f"{name}  {U.GRAY}[{diff}]{U.RESET}"
-            print(f"{U.BOLD}║{U.RESET}  {i}. {label:<40}{U.BOLD}║{U.RESET}")
-        else:
-            print(f"{U.BOLD}║{U.RESET}  {i}. {name:<28}{U.BOLD}║{U.RESET}")
-    print(f"{U.BOLD}║{U.RESET}                                {U.BOLD}║{U.RESET}")
-    print(f"{U.BOLD}║{U.RESET}  {U.GRAY}q. Quit{U.RESET}                         {U.BOLD}║{U.RESET}")
-    print(f"{U.BOLD}╚════════════════════════════════╝{U.RESET}")
-    return input("\n> ").strip().lower()
+        if i == 10:
+            print(f"  {U.GRAY}── gambling ────────────────────{U.RESET}")
+        elif i == 13:
+            print(f"  {U.GRAY}────────────────────────────────{U.RESET}")
+        print(f"  {i:>2}. {name}")
+    print(f"\n  {U.GRAY} q. Quit{U.RESET}")
+    U.hr()
+    return input("\n > ").strip().lower()
 
 def main():
     while True:

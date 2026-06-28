@@ -1,5 +1,6 @@
 import random, time
 from . import utils as U
+from . import stats as S
 from .utils import SETTINGS, POOL_5L, BOLD, RESET
 
 _STAGES = [
@@ -53,6 +54,7 @@ def play():
 
             guess = input(" Letter  [q = menu] > ").strip().lower()
             if guess == "q":
+                S.update("hangman", wins, wins + losses, best_streak)
                 U.summary(wins, wins + losses, best_streak, elapsed=int(time.time() - start))
                 input(" Enter to return to menu...")
                 return
@@ -94,5 +96,6 @@ def play():
         if cont is not True:
             break
 
+    S.update("hangman", wins, wins + losses, best_streak)
     U.summary(wins, wins + losses, best_streak, elapsed=int(time.time() - start))
     input(" Enter to return to menu...")

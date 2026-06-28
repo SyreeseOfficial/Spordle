@@ -1,5 +1,6 @@
 import random, time
 from . import utils as U
+from . import stats as S
 from .utils import SETTINGS, TENSES, BOLD, RESET
 
 _LABELS = {
@@ -17,9 +18,25 @@ def _show_paradigm(tense_data, correct_person):
         marker = f"{U.GREEN}>{RESET}" if person == correct_person else " "
         print(f"  {marker} {person:<14} {BOLD}{form}{RESET}")
 
+def _is_irregular(inf, data):
+    yo = data["tenses"].get("Indicativo/Presente", {}).get("yo", "")
+    if not yo or not inf.endswith(("ar", "er", "ir")):
+        return False
+    return yo != inf[:-2] + "o"
+
 def play():
     verbs    = U.load("verbs.json")
     inf_list = list(verbs.keys())
+
+    verb_type = SETTINGS["verb_type"]
+    if verb_type != "all":
+        want_irreg = (verb_type == "irregular")
+        inf_list = [inf for inf in inf_list if _is_irregular(inf, verbs[inf]) == want_irreg]
+    if not inf_list:
+        print(f"\n {U.GRAY}No verbs match current filter ({verb_type}). Change it in Settings.{RESET}")
+        input(" Enter to return to menu...")
+        return
+
     correct  = total = streak = best_streak = 0
     rounds   = SETTINGS["rounds"]
     start    = time.time()
@@ -38,7 +55,8 @@ def play():
 
         U.clear()
         U.game_header("VERB CONJUGATION", correct, total, streak, best=best_streak)
-        print(f" {BOLD}{inf}{RESET}  ({data['en']})")
+        vt_tag = f"  {U.GRAY}[{verb_type}]{RESET}" if verb_type != "all" else ""
+        print(f" {BOLD}{inf}{RESET}  ({data['en']}){vt_tag}")
         print(f" Tense:  {BOLD}{label}{RESET}")
         print(f" Person: {BOLD}{person}{RESET}\n")
 
@@ -67,5 +85,6 @@ def play():
 
         input("\n Enter to continue...")
 
+    S.update("conjugation", correct, total, best_streak)
     U.summary(correct, total, best_streak, elapsed=int(time.time() - start))
     input(" Enter to return to menu...")

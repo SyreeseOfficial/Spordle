@@ -1,5 +1,6 @@
 import random, time
 from . import utils as U
+from . import stats as S
 from .utils import SETTINGS, BOLD, RESET
 
 _FEM_ENDINGS = ("ción", "sión", "dad", "tad", "tud", "eza", "ura")
@@ -67,5 +68,6 @@ def play():
 
         input("\n Enter to continue...")
 
+    S.update("gender", correct, total, best_streak)
     U.summary(correct, total, best_streak, elapsed=int(time.time() - start))
     input(" Enter to return to menu...")

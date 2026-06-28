@@ -1,5 +1,6 @@
 import random, time
 from . import utils as U
+from . import stats as S
 from .utils import SETTINGS, POOL_5L, BOLD, RESET
 
 def _shuffle(word):
@@ -53,5 +54,6 @@ def play():
 
         input("\n Enter to continue...")
 
+    S.update("anagram", correct, total, best_streak)
     U.summary(correct, total, best_streak, elapsed=int(time.time() - start))
     input(" Enter to return to menu...")

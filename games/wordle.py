@@ -1,6 +1,7 @@
 import random
 from datetime import date
 from . import utils as U
+from . import stats as S
 from .utils import SETTINGS, POOL_5L, BOLD, RESET
 
 # Use string names so _score() stays theme-independent
@@ -94,6 +95,7 @@ def play():
                 print("   " + _render(g, c))
             msgs = ["Genius!", "Magnificent!", "Impressive!", "Splendid!", "Great!", "Phew!"]
             print(f"\n {U.GREEN}{BOLD}{msgs[min(len(guesses)-1, 5)]}{RESET}  ({word_map.get(target, '?')})")
+            S.update("wordle", 1, 1)
             input("\n Enter to return to menu...")
             return
 
@@ -102,4 +104,5 @@ def play():
     for g, c in guesses:
         print("   " + _render(g, c))
     print(f"\n {U.GRAY}The word was: {BOLD}{target}{RESET}  {U.GRAY}({word_map.get(target, '?')}){RESET}")
+    S.update("wordle", 0, 1)
     input("\n Enter to return to menu...")

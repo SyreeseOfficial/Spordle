@@ -1,0 +1,63 @@
+import random, time
+from . import utils as U
+from . import stats as S
+from .utils import SETTINGS, POOL, BOLD, RESET
+
+def _hearts(lives, total=3):
+    return U.GREEN + "♥ " * lives + U.GRAY + "♡ " * (total - lives) + RESET
+
+def play():
+    all_words = U.load("words.json")
+    pool_size = POOL[SETTINGS["difficulty"]]
+    words     = all_words[:pool_size]
+
+    lives       = 3
+    correct     = 0
+    total       = 0
+    streak      = 0
+    best_streak = 0
+    start       = time.time()
+
+    while lives > 0:
+        word   = random.choice(words)
+        prompt = word["es"]
+        answer = word["en"]
+
+        U.clear()
+        print(f"\n{BOLD} ROGUELIKE  [{SETTINGS['difficulty'].upper()}]{RESET}")
+        print(f" {_hearts(lives)}   {U.CYAN}score {BOLD}{correct}{RESET}")
+        U.hr()
+        print(f" {BOLD}{prompt}{RESET}\n")
+
+        inp = U.yn_input(" [Enter to reveal  /  q = quit] > ")
+        if inp == "q":
+            break
+
+        print(f"\n   → {BOLD}{answer}{RESET}")
+        rating = U.yn_input("\n Got it? [Y/n] > ")
+        if rating == "q":
+            break
+
+        total += 1
+        if rating:
+            correct += 1
+            streak  += 1
+            best_streak = max(best_streak, streak)
+            print(f"\n {U.GREEN}+1  {U.praise()}{RESET}{U.streak_display(streak)}")
+            input("\n Enter to continue...")
+        else:
+            streak = 0
+            lives -= 1
+            if lives > 0:
+                print(f"\n {U.GRAY}Nope — {BOLD}{answer}{RESET}")
+                print(f" {_hearts(lives)} remaining")
+                input("\n Enter to continue...")
+            else:
+                U.clear()
+                print(f"\n {U.YELLOW}{BOLD}GAME OVER!{RESET}")
+                print(f" The word was: {BOLD}{answer}{RESET}")
+                print(f"\n {U.CYAN}Final score: {BOLD}{correct}{RESET}")
+
+    S.update("roguelike", correct, total, best_streak, best_run=correct)
+    U.summary(correct, total, best_streak, elapsed=int(time.time() - start))
+    input(" Enter to return to menu...")
