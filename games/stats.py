@@ -38,7 +38,11 @@ def update(game, correct, total, best_streak=0, **extra):
     g["best_streak"]  = max(g["best_streak"], best_streak)
     for k, v in extra.items():
         g[k] = max(g.get(k, 0), v)
+    data["_last"] = {"game": game, "correct": correct, "total": total, "best_streak": best_streak}
     _save(data)
+
+def get_last():
+    return load().get("_last")
 
 def reset():
     _save(_blank())

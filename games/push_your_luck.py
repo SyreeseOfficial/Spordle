@@ -77,10 +77,13 @@ def play():
                 push_pile  = 0
                 multiplier = 1
                 print(f" {U.GREEN}{BOLD}Banked! Total: {banked}{RESET}")
+            U.play_correct()
         else:
+            prev_streak = total - correct  # not streak-based but still track
             print(f"\n {U.GRAY}Wrong — lost pile of {push_pile}!  Banked total: {BOLD}{banked}{RESET}  {U.GRAY}{U.console()}{RESET}")
             push_pile  = 0
             multiplier = 1
+            U.play_wrong()
 
         U.pause(ok=rating)
 

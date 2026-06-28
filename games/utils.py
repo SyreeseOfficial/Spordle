@@ -37,6 +37,7 @@ SETTINGS = {
     "rf_time":       0,        # default Rapid Fire time; 0 = ask each session
     "rl_lives":      3,        # Roguelike starting lives: 1/2/3/5
     "srs":           False,    # spaced repetition in Translation
+    "sounds":        False,    # sound effects via aplay
 }
 
 POOL    = {"easy": 500,  "medium": 2000, "hard": 5000}
@@ -52,6 +53,21 @@ _PRAISE  = ["¡Excelente!", "¡Muy bien!", "¡Perfecto!", "¡Brillante!",
             "¡Correcto!", "¡Increíble!", "¡Fantástico!"]
 _CONSOLE = ["¡Ánimo!", "Keep going!", "Almost there!", "You'll get it!",
             "¡No te rindas!", "Practice makes perfect!"]
+
+_WRONG_STREAK = [
+    "¡Ay no! {n} streak gone.", "Nooo — {n} in a row lost!",
+    "¡Ánimo! You had {n}.",    "That stings. {n} was great though.",
+]
+_WRONG_CLOSE = [
+    "So close — {n} in a row gone.", "¡Casi! {n} streak ended.",
+]
+
+_CHECKPOINTS = {
+    10: "10 rounds — ¡En racha!",
+    25: "25 rounds — ¡Caliente!",
+    50: "50 rounds — Dedication!",
+   100: "100 rounds — ¡Leyenda!",
+}
 
 def load(filename):
     with open(os.path.join(_DATA, filename)) as f:
@@ -70,6 +86,34 @@ def match(guess, answer):
 
 def praise():  return random.choice(_PRAISE)
 def console(): return random.choice(_CONSOLE)
+
+def wrong_msg(prev_streak=0):
+    if prev_streak >= 5:
+        return random.choice(_WRONG_STREAK).format(n=prev_streak)
+    if prev_streak >= 3:
+        return random.choice(_WRONG_CLOSE).format(n=prev_streak)
+    return console()
+
+def checkpoint(total):
+    msg = _CHECKPOINTS.get(total)
+    if msg:
+        w   = terminal_width()
+        pad = " " * max(0, (w - len(msg) - 6) // 2)
+        print(f"\n{pad}{CYAN}✦ {msg} ✦{RESET}")
+
+def play_correct():
+    try:
+        from . import sounds as _S
+        _S.correct()
+    except Exception:
+        pass
+
+def play_wrong():
+    try:
+        from . import sounds as _S
+        _S.wrong()
+    except Exception:
+        pass
 
 def terminal_width():
     try:
@@ -97,7 +141,13 @@ def banner():
     print(f"{pad}{CYAN}{blank}{RESET}")
     print(f"{pad}{GRAY}║{'Spanish Practice CLI'.center(inner)}║{RESET}")
     print(f"{pad}{CYAN}{blank}{RESET}")
-    print(f"{pad}{CYAN}{bot}{RESET}\n")
+    print(f"{pad}{CYAN}{bot}{RESET}")
+    hour = time.localtime().tm_hour
+    if   5 <= hour < 12: greeting = "¡Buenos días!"
+    elif 12 <= hour < 20: greeting = "¡Buenas tardes!"
+    else:                 greeting = "¡Buenas noches!"
+    gpad = " " * max(0, (w - len(greeting)) // 2)
+    print(f"\n{gpad}{YELLOW}{greeting}{RESET}\n")
     input(f"{pad}  {GRAY}Press Enter to play...{RESET} ")
 
 def pause(ok=False):
@@ -135,6 +185,11 @@ def streak_milestone(n):
     print(f"\n{pad}{col}┌{'─' * len(msg)}┐{RESET}")
     print(f"{pad}{col}│{msg}│{RESET}")
     print(f"{pad}{col}└{'─' * len(msg)}┘{RESET}")
+    try:
+        from . import sounds as _S
+        _S.milestone(n)
+    except Exception:
+        pass
 
 def _diff_color():
     d = SETTINGS["difficulty"]
@@ -168,6 +223,10 @@ def game_header(name, correct=0, total=0, streak=0, best=0):
 
     print(f"\n {GRAY}score {score_str}{RESET}   {stk_str}{best_str}")
     print(f" {GRAY}q = menu{RESET}")
+    if best > 0 and 0 < streak < best:
+        gap = best - streak
+        if gap <= 2:
+            print(f" {YELLOW}{'One more' if gap == 1 else f'{gap} away'} from your best!{RESET}")
     hr()
 
 def summary(correct, total, best_streak, elapsed=0):

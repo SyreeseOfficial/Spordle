@@ -81,9 +81,11 @@ def play():
             print(f"\n {U.GREEN}{U.praise()}{RESET}{U.streak_display(streak)}")
             if is_new and streak >= 3:
                 print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
+            U.play_correct()
             U.streak_milestone(streak)
         else:
-            streak       = 0
+            prev_streak   = streak
+            streak        = 0
             consec_wrong += 1
             if SETTINGS["srs"] and word not in srs_miss:
                 srs_miss.append(word)
@@ -94,10 +96,13 @@ def play():
                 consec_wrong = 0
                 print(f"\n {U.YELLOW}TILT — easing up for a few rounds...{RESET}")
             else:
-                print(f"\n {U.GRAY}{U.console()}{RESET}")
+                print(f"\n {U.GRAY}{U.wrong_msg(prev_streak)}{RESET}")
+            U.play_wrong()
 
         if tilt_rounds > 0:
             tilt_rounds -= 1
+
+        U.checkpoint(total)
 
         if rounds > 0 and total >= rounds:
             print(f"\n {U.CYAN}{BOLD}Round complete!{RESET}")

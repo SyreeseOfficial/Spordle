@@ -53,13 +53,16 @@ def play():
             streak  += 1
             best_streak = max(best_streak, streak)
             print(f"\n {U.GREEN}+1  {U.praise()}{RESET}{U.streak_display(streak)}")
+            U.play_correct()
             U.streak_milestone(streak)
             U.pause(ok=True)
         else:
+            prev_streak = streak
             streak = 0
             lives -= 1
+            U.play_wrong()
             if lives > 0:
-                print(f"\n {U.GRAY}Nope — {BOLD}{answer}{RESET}")
+                print(f"\n {U.GRAY}Nope — {BOLD}{answer}{RESET}  {U.wrong_msg(prev_streak)}")
                 print(f" {_hearts(lives, max_lives)} remaining")
                 input("\n Enter to continue...")
             else:

@@ -83,6 +83,7 @@ def play():
             chips       += effective
             peak_chips   = max(peak_chips, chips)
             print(f"\n {U.GREEN}+{effective} chips  →  {BOLD}{chips}{RESET}{U.streak_display(streak)}")
+            U.play_correct()
             U.streak_milestone(streak)
             offer = input(f"\n {U.YELLOW}⚡ Double-or-nothing next? [d / Enter to skip]{RESET} > ").strip().lower()
             if offer == "d":
@@ -90,10 +91,12 @@ def play():
                 print(f" {U.YELLOW}Stakes doubled for next round!{RESET}")
             U.pause(ok=True)
         else:
+            prev_streak = streak
             streak  = 0
             chips  -= effective
             chips   = max(chips, 0)
-            print(f"\n {U.GRAY}-{effective} chips  →  {BOLD}{chips}{RESET}  {U.GRAY}{U.console()}{RESET}")
+            print(f"\n {U.GRAY}-{effective} chips  →  {BOLD}{chips}{RESET}  {U.GRAY}{U.wrong_msg(prev_streak)}{RESET}")
+            U.play_wrong()
             if chips == 0:
                 print(f"\n {U.YELLOW}{BOLD}BUST! Out of chips.{RESET}")
                 input(" Enter to return to menu...")

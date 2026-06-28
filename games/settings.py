@@ -36,38 +36,40 @@ def _show():
 
     _section("GAMEPLAY")
     print(f"   1. Difficulty       {_val(d['difficulty'].upper())}")
-    print(f"      {U.GRAY}easy · medium · hard{RESET}\n")
+    print(f"      {U.GRAY}easy · medium · hard{RESET}")
     print(f"   2. Round Limit      {_val(_ROUNDS_LBL[d['rounds']])}")
-    print(f"      {U.GRAY}5 · 10 · 25 · unlimited{RESET}\n")
+    print(f"      {U.GRAY}5 · 10 · 25 · unlimited{RESET}")
     print(f"   3. Translation Dir  {_val(_DIR_LBL[d['direction']])}")
-    print(f"      {U.GRAY}ask · ES→EN · EN→ES{RESET}\n")
+    print(f"      {U.GRAY}ask · ES→EN · EN→ES{RESET}")
     print(f"   4. Verb Type        {_val(_VERB_LBL[d['verb_type']])}")
     print(f"      {U.GRAY}all · irregular · regular{RESET}")
 
     _section("DISPLAY")
     print(f"   5. Color Theme      {_val(d['theme'].upper())}")
-    print(f"      {U.GRAY}default · ocean · sunset · mono{RESET}\n")
+    print(f"      {U.GRAY}default · ocean · sunset · mono{RESET}")
     print(f"   6. Hints            {_on(d['hints'])}")
-    print(f"      {U.GRAY}show first letter before reveal (Translation){RESET}\n")
+    print(f"      {U.GRAY}show first letter before reveal (Translation){RESET}")
     print(f"   7. Word Rank        {_on(d['show_rank'])}")
     print(f"      {U.GRAY}show frequency rank after reveal (Translation){RESET}")
 
     _section("BEHAVIOUR")
     print(f"   8. Auto-Advance     {_on(d['auto_advance'])}")
-    print(f"      {U.GRAY}skip Enter pause after correct answers{RESET}\n")
+    print(f"      {U.GRAY}skip Enter pause after correct answers{RESET}")
     print(f"   9. Strict Accents   {_on(d['strict_accents'])}")
-    print(f"      {U.GRAY}must type exact characters — dieciséis not dieciseis{RESET}\n")
+    print(f"      {U.GRAY}must type exact characters — dieciséis not dieciseis{RESET}")
     print(f"  10. Spaced Rep       {_on(d['srs'])}")
     print(f"      {U.GRAY}revisit recently-missed words in Translation{RESET}")
 
     _section("MODES")
     print(f"  11. Rapid Fire Time  {_val(_RF_LBL[d['rf_time']])}")
-    print(f"      {U.GRAY}15 sec · 30 sec · 60 sec · ask each session{RESET}\n")
+    print(f"      {U.GRAY}15 sec · 30 sec · 60 sec · ask each session{RESET}")
     print(f"  12. Roguelike Lives  {_val(d['rl_lives'])}")
     print(f"      {U.GRAY}1 · 2 · 3 · 5{RESET}")
+    print(f"  13. Sounds           {_on(d['sounds'])}")
+    print(f"      {U.GRAY}sound effects via aplay (Linux) / afplay (macOS){RESET}")
 
     _section("DATA")
-    print(f"  13. Reset Stats      {U.GRAY}wipe all-time records{RESET}")
+    print(f"  14. Reset Stats      {U.GRAY}wipe all-time records{RESET}")
 
     U.hr()
     print(f"  {U.GRAY}Enter a number to change, q to go back{RESET}")
@@ -90,7 +92,8 @@ def play():
         elif choice == "10": SETTINGS["srs"]            = not SETTINGS["srs"]
         elif choice == "11": SETTINGS["rf_time"]        = _cycle(_RFTIME_CYCLE, SETTINGS["rf_time"])
         elif choice == "12": SETTINGS["rl_lives"]       = _cycle(_LIVES_CYCLE,  SETTINGS["rl_lives"])
-        elif choice == "13":
+        elif choice == "13": SETTINGS["sounds"]          = not SETTINGS["sounds"]
+        elif choice == "14":
             confirm = input(
                 f"\n {U.YELLOW}Reset ALL stats? Can't be undone. [y/N] >{RESET} "
             ).strip().lower()

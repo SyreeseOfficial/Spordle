@@ -84,14 +84,17 @@ def play():
             print(f" {U.GREEN}{BOLD}{U.praise()}  →  {target} = {word_map[target]}{RESET}{U.streak_display(streak)}")
             if is_new and streak >= 3:
                 print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
+            U.play_correct()
             U.streak_milestone(streak)
         else:
+            prev_streak = streak
             losses += 1
             streak  = 0
             U.clear()
             U.game_header("HANGMAN", wins, total, streak, best=best_streak)
             _draw(6, target, set(target), U.GRAY)  # reveal full word
-            print(f" {U.GRAY}The word was: {BOLD}{target}{RESET}  {U.GRAY}({word_map[target]}){RESET}")
+            print(f" {U.GRAY}The word was: {BOLD}{target}{RESET}  {U.GRAY}({word_map[target]})  {U.wrong_msg(prev_streak)}{RESET}")
+            U.play_wrong()
 
         cont = U.yn_input("\n Play again? [Y/n] > ")
         if cont is not True:

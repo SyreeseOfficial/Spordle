@@ -37,7 +37,15 @@ def menu():
     else:
         q_str = f"   {U.GRAY}⚡ 0/3 quests{U.RESET}"
 
-    print(f"\n{U.BOLD} S P O R D L E{U.RESET}   {U.GRAY}[{diff}]{U.RESET}{q_str}")
+    last = stats.get_last()
+    if last and last.get("total", 0) > 0:
+        pct      = int(last["correct"] / last["total"] * 100)
+        name_str = last["game"].replace("_", " ")
+        last_str = f"\n  {U.GRAY}last: {name_str}  {pct}%  streak {last['best_streak']}{U.RESET}"
+    else:
+        last_str = ""
+
+    print(f"\n{U.BOLD} S P O R D L E{U.RESET}   {U.GRAY}[{diff}]{U.RESET}{q_str}{last_str}")
     U.hr()
     for i, (name, _) in enumerate(GAMES, 1):
         if i == 10:

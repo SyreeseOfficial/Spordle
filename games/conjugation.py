@@ -71,17 +71,20 @@ def play():
             streak   += 1
             is_new    = streak > best_streak
             best_streak = max(best_streak, streak)
-            note = f"  {U.GRAY}(full: {answer}){RESET}" if not U.match(guess, answer) else ""
-            # show exact form if user skipped accent
             exact_note = f"  {U.GRAY}(full: {answer}){RESET}" if guess.lower() != answer.lower() else ""
             print(f"\n {U.GREEN}{U.praise()}{RESET}{exact_note}{U.streak_display(streak)}")
             if is_new and streak >= 3:
                 print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
+            U.play_correct()
             U.streak_milestone(streak)
         else:
+            prev_streak = streak
             streak = 0
-            print(f"\n {U.GRAY}Answer: {BOLD}{answer}{RESET}  {U.GRAY}{U.console()}{RESET}")
+            print(f"\n {U.GRAY}Answer: {BOLD}{answer}{RESET}  {U.GRAY}{U.wrong_msg(prev_streak)}{RESET}")
             _show_paradigm(data["tenses"][tense_key], person)
+            U.play_wrong()
+
+        U.checkpoint(total)
 
         if rounds > 0 and total >= rounds:
             print(f"\n {U.CYAN}{BOLD}Round complete!{RESET}")
