@@ -79,7 +79,12 @@ def play():
         _show()
         choice = input("\n > ").strip().lower()
         if choice in ("q", ""):
+            U.play_back()
             break
+
+        _TOGGLES = {"6": "hints", "7": "show_rank", "8": "auto_advance",
+                    "9": "strict_accents", "10": "srs", "13": "sounds"}
+
         if   choice == "1":  SETTINGS["difficulty"]    = _cycle(_DIFF_CYCLE,   SETTINGS["difficulty"])
         elif choice == "2":  SETTINGS["rounds"]         = _cycle(_ROUNDS_CYCLE, SETTINGS["rounds"])
         elif choice == "3":  SETTINGS["direction"]      = _cycle(_DIR_CYCLE,    SETTINGS["direction"])
@@ -92,7 +97,7 @@ def play():
         elif choice == "10": SETTINGS["srs"]            = not SETTINGS["srs"]
         elif choice == "11": SETTINGS["rf_time"]        = _cycle(_RFTIME_CYCLE, SETTINGS["rf_time"])
         elif choice == "12": SETTINGS["rl_lives"]       = _cycle(_LIVES_CYCLE,  SETTINGS["rl_lives"])
-        elif choice == "13": SETTINGS["sounds"]          = not SETTINGS["sounds"]
+        elif choice == "13": SETTINGS["sounds"]         = not SETTINGS["sounds"]
         elif choice == "14":
             confirm = input(
                 f"\n {U.YELLOW}Reset ALL stats? Can't be undone. [y/N] >{RESET} "
@@ -101,3 +106,10 @@ def play():
                 S.reset()
                 print(f" {U.GREEN}Stats reset.{RESET}")
                 input(" Enter to continue...")
+        else:
+            continue
+
+        if choice in _TOGGLES:
+            U.play_toggle(SETTINGS[_TOGGLES[choice]])
+        elif choice in ("1","2","3","4","5","11","12"):
+            U.play_navigate()

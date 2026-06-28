@@ -115,6 +115,34 @@ def play_wrong():
     except Exception:
         pass
 
+def play_navigate():
+    try:
+        from . import sounds as _S
+        _S.navigate()
+    except Exception:
+        pass
+
+def play_back():
+    try:
+        from . import sounds as _S
+        _S.back()
+    except Exception:
+        pass
+
+def play_toggle(on):
+    try:
+        from . import sounds as _S
+        (_S.toggle_on if on else _S.toggle_off)()
+    except Exception:
+        pass
+
+def play_game_over():
+    try:
+        from . import sounds as _S
+        _S.game_over()
+    except Exception:
+        pass
+
 def terminal_width():
     try:
         return os.get_terminal_size().columns

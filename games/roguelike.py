@@ -66,6 +66,7 @@ def play():
                 print(f" {_hearts(lives, max_lives)} remaining")
                 input("\n Enter to continue...")
             else:
+                U.play_game_over()
                 U.clear()
                 print(f"\n {U.YELLOW}{BOLD}GAME OVER!{RESET}")
                 print(f" The word was: {BOLD}{answer}{RESET}")

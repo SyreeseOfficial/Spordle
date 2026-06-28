@@ -62,10 +62,12 @@ def main():
     while True:
         choice = menu()
         if choice in ("q", "quit", "exit"):
+            U.play_back()
             U.clear()
             print("\n ¡Hasta luego!\n")
             break
         if choice.isdigit() and 1 <= int(choice) <= len(GAMES):
+            U.play_navigate()
             GAMES[int(choice) - 1][1]()
         else:
             print(" Pick a number from the menu.")

@@ -58,3 +58,15 @@ def milestone(n):
 
 def game_over():
     _play((440, 0.14), (370, 0.14), (294, 0.28))   # descending A-F#-D
+
+def navigate():
+    _play((523, 0.06))          # clean middle-C click for menu selection
+
+def back():
+    _play((370, 0.07))          # lower note, feels like stepping back
+
+def toggle_on():
+    _play((440, 0.05), (660, 0.08))   # ascending chirp — switched ON
+
+def toggle_off():
+    _play((660, 0.05), (440, 0.08))   # descending chirp — switched OFF

@@ -107,6 +107,35 @@ data/
 - All imports and data loading smoke-tested and passing
 - Ready to play: `python3 spordle.py`
 
+### 2026-06-28 — Session 9
+
+**Sound effects, aliveness + AUR packaging:**
+
+- **Sound effects** (`games/sounds.py`): Procedurally generated tones via stdlib `wave`+`math`+`struct` — no assets, no pip installs. Plays async via `aplay`/`afplay` subprocess + threading. Toggle via Settings option 13.
+  - `correct()`: 880Hz ping; `wrong()`: detuned 220/233Hz buzz; `milestone(n)`: ascending chords at streaks 5/10/25; `game_over()`: descending 3-note A-F#-D
+  - Navigation sounds: `navigate()` (523Hz click on menu/settings select), `back()` (370Hz on exit), `toggle_on()`/`toggle_off()` (ascending/descending chirp on settings toggles)
+- **More alive features:**
+  - Time-based greeting in startup banner — ¡Buenos días/Buenas tardes/Buenas noches!
+  - Near-best streak nudge in game header — "One more from your best!" when gap ≤ 2
+  - `wrong_msg(prev_streak)`: context-aware wrong messages — streak of 7+ says "¡Ay no! 7 streak gone." instead of generic
+  - `checkpoint(total)`: `✦ 10 rounds — ¡En racha! ✦` flash at 10/25/50/100 rounds
+  - Last session shown in main menu: `last: translation  84%  streak 12`
+- **Settings tightened**: removed blank lines between options — all 14 settings now visible at once
+- **PKGBUILD** added for AUR packaging as `spordle-git`. `depends=('python' 'alsa-utils')` ensures `aplay` auto-installs. Installs to `/usr/lib/spordle/` with wrapper at `/usr/bin/spordle`.
+
+### 2026-06-28 — Session 8
+
+**Settings polish + visual + QoL:**
+
+- **5 new settings** (now 14 total, grouped in GAMEPLAY/DISPLAY/BEHAVIOUR/MODES/DATA):
+  - Auto-Advance: correct answers auto-advance after 0.5s
+  - Strict Accents: enforces exact typed characters (dieciséis vs dieciseis)
+  - Spaced Repetition (SRS): 40% pull rate from missed-word list, persisted between sessions
+  - Rapid Fire Time: set default so per-session prompt is skipped
+  - Roguelike Lives: choose 1/2/3/5 starting lives
+- **Visual polish**: startup ASCII banner with time greeting, dynamic separator widths, centered game titles with color-coded difficulty badge (green/yellow/red), redesigned session summary, streak milestone boxes at 5/10/25
+- **Games updated**: `pause(ok)`, `match()` for accent-aware comparison, `streak_milestone()` in all games, `U.play_correct()`/`U.play_wrong()` in all games
+
 ### 2026-06-28 — Session 7
 
 **Gambling + addiction update:**
