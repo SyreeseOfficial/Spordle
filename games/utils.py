@@ -1,6 +1,7 @@
 import json, os, random, time, unicodedata
 
-_DATA = os.path.join(os.path.dirname(__file__), "..", "data")
+_DATA          = os.path.join(os.path.dirname(__file__), "..", "data")
+_SETTINGS_PATH = os.path.expanduser("~/.spordle_settings.json")
 
 BOLD  = "\033[1m"
 DIM   = "\033[2m"
@@ -23,6 +24,10 @@ def apply_theme(name):
     global GREEN, YELLOW, GRAY, CYAN
     GREEN, YELLOW, GRAY, CYAN = _THEMES.get(name, _THEMES["default"])
     SETTINGS["theme"] = name
+
+def save_settings():
+    with open(_SETTINGS_PATH, "w") as f:
+        json.dump(SETTINGS, f, indent=2)
 
 SETTINGS = {
     "difficulty":    "medium",
@@ -287,3 +292,18 @@ def summary(correct, total, best_streak, elapsed=0):
     print(f"\n  {col}{BOLD}{pct}%{RESET}   {BOLD}{correct} / {total}{RESET}{time_str}{streak_str}")
     print(f"\n  {bar}\n")
     print(f"  {col}{BOLD}{grade}{RESET}\n")
+
+def _load_settings():
+    if not os.path.exists(_SETTINGS_PATH):
+        return
+    try:
+        with open(_SETTINGS_PATH) as f:
+            saved = json.load(f)
+        for k in SETTINGS:
+            if k in saved:
+                SETTINGS[k] = saved[k]
+        apply_theme(SETTINGS["theme"])
+    except Exception:
+        pass
+
+_load_settings()

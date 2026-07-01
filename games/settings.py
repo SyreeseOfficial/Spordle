@@ -113,3 +113,4 @@ def play():
             U.play_toggle(SETTINGS[_TOGGLES[choice]])
         elif choice in ("1","2","3","4","5","11","12"):
             U.play_navigate()
+        U.save_settings()

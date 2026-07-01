@@ -32,6 +32,7 @@ def play():
     tilt_rounds  = 0
     rounds  = SETTINGS["rounds"]
     start   = time.time()
+    seen    = set()
 
     while True:
         # Tilt: ease up after 3 consecutive wrong
@@ -42,8 +43,13 @@ def play():
             word = random.choice(srs_miss)
             idx  = words.index(word) if word in words else 0
         else:
-            idx  = random.randrange(len(pool))
-            word = pool[idx]
+            fresh = [w for w in pool if w["es"] not in seen]
+            if not fresh:
+                seen.clear()
+                fresh = pool
+            word = random.choice(fresh)
+            idx  = pool.index(word)
+            seen.add(word["es"])
 
         prompt = word["es"] if es_to_en else word["en"]
         answer = word["en"] if es_to_en else word["es"]
@@ -110,8 +116,7 @@ def play():
 
         U.pause(ok=rating)
 
-    if SETTINGS["srs"]:
-        S.set_list("translation", "miss_words", [w["es"] for w in srs_miss[:50]])
-    S.update("translation", correct, total, best_streak)
+    miss_kw = {"miss_words": [w["es"] for w in srs_miss[:50]]} if SETTINGS["srs"] else {}
+    S.update("translation", correct, total, best_streak, **miss_kw)
     U.summary(correct, total, best_streak, elapsed=int(time.time() - start))
     input(" Enter to return to menu...")

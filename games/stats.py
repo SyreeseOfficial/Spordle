@@ -37,7 +37,7 @@ def update(game, correct, total, best_streak=0, **extra):
     g["correct"]     += correct
     g["best_streak"]  = max(g["best_streak"], best_streak)
     for k, v in extra.items():
-        g[k] = max(g.get(k, 0), v)
+        g[k] = v if isinstance(v, list) else max(g.get(k, 0), v)
     data["_last"] = {"game": game, "correct": correct, "total": total, "best_streak": best_streak}
     _save(data)
 
