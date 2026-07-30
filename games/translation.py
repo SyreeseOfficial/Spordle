@@ -27,6 +27,11 @@ def play():
         miss_set = set(miss_es)
         srs_miss = [w for w in words if w["es"] in miss_set]
 
+    # Mastery tracking — consecutive correct per word, persisted across sessions
+    t_data        = S.load().get("translation", {})
+    mastery_counts = dict(t_data.get("mastery_counts", {}))
+    mastered_words = set(t_data.get("mastered_words", []))
+
     correct = total = streak = best_streak = 0
     consec_wrong = 0
     tilt_rounds  = 0
@@ -53,6 +58,7 @@ def play():
 
         prompt = word["es"] if es_to_en else word["en"]
         answer = word["en"] if es_to_en else word["es"]
+        dir_label = f"{U.GRAY}[ES→EN  f=flip]{RESET}" if es_to_en else f"{U.GRAY}[EN→ES  f=flip]{RESET}"
 
         U.clear()
         U.game_header("TRANSLATION", correct, total, streak, best=best_streak)
@@ -60,12 +66,18 @@ def play():
             print(f" {U.YELLOW}TILT — easier words for {tilt_rounds} more round{'s' if tilt_rounds != 1 else ''}{RESET}")
         if SETTINGS["srs"] and word in srs_miss:
             print(f" {U.CYAN}SRS — revisiting a missed word{RESET}")
+        if word["es"] in mastered_words:
+            print(f" {U.GREEN}★ mastered{RESET}")
         if SETTINGS["hints"]:
             print(f"  {U.GRAY}Hint: starts with '{answer[0].upper()}'{RESET}\n")
 
-        inp = U.yn_input(f" {BOLD}{prompt}{RESET}\n Enter to reveal > ")
-        if inp == "q":
+        print(f"  {dir_label}")
+        raw = input(f" {BOLD}{prompt}{RESET}\n Enter to reveal > ").strip().lower()
+        if raw == "q":
             break
+        if raw == "f":
+            es_to_en = not es_to_en
+            continue
 
         print(f"\n   → {BOLD}{answer}{RESET}")
         if SETTINGS["show_rank"]:
@@ -76,6 +88,7 @@ def play():
             break
 
         total += 1
+        es_key = word["es"]
         if rating:
             correct      += 1
             streak       += 1
@@ -84,6 +97,11 @@ def play():
             best_streak   = max(best_streak, streak)
             if SETTINGS["srs"] and word in srs_miss:
                 srs_miss.remove(word)
+            # mastery: 3 consecutive correct marks word as mastered
+            mastery_counts[es_key] = mastery_counts.get(es_key, 0) + 1
+            if mastery_counts[es_key] >= 3 and es_key not in mastered_words:
+                mastered_words.add(es_key)
+                print(f"\n {U.GREEN}{BOLD}★ Word mastered: {es_key}{RESET}")
             print(f"\n {U.GREEN}{U.praise()}{RESET}{U.streak_display(streak)}")
             if is_new and streak >= 3:
                 print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
@@ -93,6 +111,7 @@ def play():
             prev_streak   = streak
             streak        = 0
             consec_wrong += 1
+            mastery_counts[es_key] = 0  # reset mastery streak on wrong
             if SETTINGS["srs"] and word not in srs_miss:
                 srs_miss.append(word)
                 if len(srs_miss) > 50:
@@ -117,6 +136,9 @@ def play():
         U.pause(ok=rating)
 
     miss_kw = {"miss_words": [w["es"] for w in srs_miss[:50]]} if SETTINGS["srs"] else {}
-    S.update("translation", correct, total, best_streak, **miss_kw)
+    S.update("translation", correct, total, best_streak,
+             mastery_counts=mastery_counts,
+             mastered_words=list(mastered_words),
+             **miss_kw)
     U.summary(correct, total, best_streak, elapsed=int(time.time() - start))
     input(" Enter to return to menu...")

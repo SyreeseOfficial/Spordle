@@ -57,19 +57,19 @@
 
 ## Stats & Progression
 
-- **Daily login streak** — track consecutive days played in stats; show streak count in menu header next to quest progress
-- **Vocabulary mastered count** — mark a word as "mastered" after N consecutive correct answers; show total mastered in stats screen
-- **Most-missed words list** — stats screen option to show your 10 hardest words (words in `miss_words` SRS list, sorted by miss count)
-- **Achievements system** — simple badge list stored in stats JSON; examples: `First 100` (100 total correct), `Unstoppable` (25-streak), `Broke the Bank` (Stakes peak 500 chips), `Survived` (Roguelike run of 30); show earned badges in stats screen
-- **Time played tracking** — accumulate total session seconds in stats JSON; surface in stats as "Total time: 4h 22m"
-- **Export stats** — `s` option in stats menu writes `~/.spordle_export.csv` with all fields; useful for personal tracking in a spreadsheet
+- [x] **Daily login streak** — track consecutive days played in stats; show streak count in menu header next to quest progress
+- [x] **Vocabulary mastered count** — mark a word as "mastered" after N consecutive correct answers; show total mastered in stats screen
+- [x] **Most-missed words list** — stats screen option to show your 10 hardest words (words in `miss_words` SRS list, sorted by miss count)
+- [x] **Achievements system** — simple badge list stored in stats JSON; examples: `First 100` (100 total correct), `Unstoppable` (25-streak), `Broke the Bank` (Stakes peak 500 chips), `Survived` (Roguelike run of 30); show earned badges in stats screen
+- [x] **Time played tracking** — accumulate total session seconds in stats JSON; surface in stats as "Total time: 4h 22m"
+- [x] **Export stats** — `s` option in stats menu writes `~/.spordle_export.csv` with all fields; useful for personal tracking in a spreadsheet
 
 ## Settings
 
-- **"Favorite games" quick list** — let players mark 2–3 games as favorites; show them at the top of the menu numbered 1–3 before the full list
-- **Translation direction per-session flip** — in-game `f` key to flip ES→EN to EN→ES mid-session without going back to settings
-- **Auto-advance delay control** — current 0.5s is hardcoded; expose as 0.3s/0.5s/0.8s/1.0s in settings so fast players can go faster
-- **Sound volume** — currently `vol=0.35` is hardcoded in `sounds.py:_tone()`; expose as Low/Medium/High in settings
+- [x] **"Favorite games" quick list** — let players mark 2–3 games as favorites; show them at the top of the menu numbered 1–3 before the full list
+- [x] **Translation direction per-session flip** — in-game `f` key to flip ES→EN to EN→ES mid-session without going back to settings
+- [x] **Auto-advance delay control** — current 0.5s is hardcoded; expose as 0.3s/0.5s/0.8s/1.0s in settings so fast players can go faster
+- [x] **Sound volume** — currently `vol=0.35` is hardcoded in `sounds.py:_tone()`; expose as Low/Medium/High in settings
 
 ## Technical / Code Quality
 

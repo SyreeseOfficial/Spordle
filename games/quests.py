@@ -38,7 +38,7 @@ def _save(data):
         json.dump(data, f, indent=2)
 
 def _gen(stats_now):
-    snap = {g: d.copy() for g, d in stats_now.items()}
+    snap = {g: d.copy() for g, d in stats_now.items() if isinstance(d, dict)}
     chosen = random.sample(_POOL, min(3, len(_POOL)))
     return {"date": _today(), "snapshot": snap, "quests": chosen}
 

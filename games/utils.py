@@ -38,11 +38,14 @@ SETTINGS = {
     "show_rank":     False,
     "verb_type":     "all",    # "all" | "irregular" | "regular"
     "auto_advance":  False,    # skip Enter after correct answers
+    "advance_delay": 0.5,      # seconds to wait in auto-advance mode
     "strict_accents":False,    # must type exact accented characters
     "rf_time":       0,        # default Rapid Fire time; 0 = ask each session
     "rl_lives":      3,        # Roguelike starting lives: 1/2/3/5
     "srs":           False,    # spaced repetition in Translation
     "sounds":        False,    # sound effects via aplay
+    "volume":        "medium", # sound volume: low / medium / high
+    "favorites":     [],       # list of game names marked as favorites
 }
 
 POOL    = {"easy": 500,  "medium": 2000, "hard": 5000}
@@ -186,7 +189,7 @@ def banner():
 def pause(ok=False):
     """Auto-advance skips Enter after correct; always waits after wrong."""
     if SETTINGS.get("auto_advance") and ok:
-        time.sleep(0.5)
+        time.sleep(SETTINGS.get("advance_delay", 0.5))
     else:
         input("\n Enter to continue...")
 

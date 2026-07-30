@@ -2,7 +2,15 @@ import math, os, struct, subprocess, tempfile, threading, wave
 
 _RATE = 22050
 
-def _tone(freqs, dur, vol=0.35):
+_VOL_MAP = {"low": 0.15, "medium": 0.35, "high": 0.6}
+
+def _tone(freqs, dur, vol=None):
+    if vol is None:
+        try:
+            from .utils import SETTINGS
+            vol = _VOL_MAP.get(SETTINGS.get("volume", "medium"), 0.35)
+        except Exception:
+            vol = 0.35
     n   = int(_RATE * dur)
     buf = bytearray()
     for i in range(n):
