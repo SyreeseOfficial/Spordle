@@ -1,6 +1,8 @@
-import math, os, struct, subprocess, tempfile, threading, wave
+import math, os, shutil, struct, subprocess, tempfile, threading, wave
 
 _RATE = 22050
+
+_PLAYER = next((p for p in (["aplay", "-q"], ["afplay"]) if shutil.which(p[0])), None)
 
 _VOL_MAP = {"low": 0.15, "medium": 0.35, "high": 0.6}
 
@@ -23,7 +25,7 @@ def _tone(freqs, dur, vol=None):
 def _play(*notes):
     """Play notes async. Each note: (freq_or_[freqs], duration_sec)."""
     from .utils import SETTINGS
-    if not SETTINGS.get("sounds"):
+    if not SETTINGS.get("sounds") or not _PLAYER:
         return
 
     def run():
@@ -39,10 +41,7 @@ def _play(*notes):
                 wf.setframerate(_RATE)
                 wf.writeframes(frames)
             tmp.close()
-            for player in (["aplay", "-q", name], ["afplay", name]):
-                if subprocess.run(["which", player[0]], capture_output=True).returncode == 0:
-                    subprocess.run(player, stderr=subprocess.DEVNULL)
-                    break
+            subprocess.run(_PLAYER + [name], stderr=subprocess.DEVNULL)
         except Exception:
             pass
         finally:
@@ -51,7 +50,9 @@ def _play(*notes):
             except Exception:
                 pass
 
-    threading.Thread(target=run, daemon=True).start()
+    t = threading.Thread(target=run, daemon=True)
+    t.start()
+    return t
 
 def correct():
     _play((880, 0.1))
@@ -71,7 +72,7 @@ def navigate():
     _play((523, 0.06))          # clean middle-C click for menu selection
 
 def back():
-    _play((370, 0.07))          # lower note, feels like stepping back
+    return _play((370, 0.07))          # lower note, feels like stepping back
 
 def toggle_on():
     _play((440, 0.05), (660, 0.08))   # ascending chirp — switched ON

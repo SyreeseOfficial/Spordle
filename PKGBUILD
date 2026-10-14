@@ -6,7 +6,8 @@ pkgdesc="Multi-game Spanish language practice CLI"
 arch=('any')
 url="https://github.com/SyreeseOfficial/Spordle"
 license=('MIT')
-depends=('python' 'alsa-utils')
+depends=('python')
+optdepends=('alsa-utils: sound effects')
 makedepends=('git')
 provides=('spordle')
 conflicts=('spordle')
@@ -23,6 +24,9 @@ package() {
 
     install -dm755 "$pkgdir/usr/lib/spordle"
     cp -r games data spordle.py "$pkgdir/usr/lib/spordle/"
+    python -m compileall -q "$pkgdir/usr/lib/spordle"
+
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 
     install -Dm755 /dev/stdin "$pkgdir/usr/bin/spordle" << 'EOF'
 #!/bin/bash

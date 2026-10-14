@@ -1,12 +1,12 @@
-import random, time
+import random
 from . import utils as U
-from . import stats as S
-from .utils import SETTINGS, BOLD, RESET
+from .utils import SETTINGS, POOL, BOLD, RESET
 
 _FEM_ENDINGS = ("ción", "sión", "dad", "tad", "tud", "eza", "ura")
 _MASC_A_ENDS = ("ma", "pa", "ta", "ca")
 
 def _infer_gender(word):
+    """Fallback when words.json has no explicit "g" for a noun."""
     if any(word.endswith(e) for e in _FEM_ENDINGS):
         return "f"
     if word.endswith("a") and not any(word.endswith(e) for e in _MASC_A_ENDS):
@@ -15,23 +15,23 @@ def _infer_gender(word):
         return "m"
     return None
 
-def play():
-    all_words = U.load("words.json")
-    nouns = [
-        {"es": w["es"], "en": w["en"], "gender": _infer_gender(w["es"])}
-        for w in all_words
-        if w["pos"] == "n" and _infer_gender(w["es"]) is not None
-    ]
+def _gender(w):
+    """'m' / 'f', or None to skip ("g": "x" marks words used with both genders)."""
+    g = w.get("g") or _infer_gender(w["es"])
+    return g if g in ("m", "f") else None
 
-    correct = total = streak = best_streak = 0
-    rounds  = SETTINGS["rounds"]
-    start   = time.time()
+def play():
+    words = U.load("words.json")[:POOL[SETTINGS["difficulty"]]]
+    nouns = [{"es": w["es"], "en": w["en"], "gender": _gender(w)}
+             for w in words if w["pos"] == "n" and _gender(w)]
+
+    s = U.Session("GENDER DRILL")
 
     while True:
         word = random.choice(nouns)
 
         U.clear()
-        U.game_header("GENDER DRILL", correct, total, streak, best=best_streak)
+        s.header()
         print(f" {BOLD}{word['es']}{RESET}  ({word['en']})\n")
         print(f"  1. el  (masculine)")
         print(f"  2. la  (feminine)\n")
@@ -48,33 +48,14 @@ def play():
             input(" Enter to continue...")
             continue
 
-        total   += 1
-        article  = "el" if word["gender"] == "m" else "la"
+        article     = "el" if word["gender"] == "m" else "la"
         was_correct = (guess == word["gender"])
         if was_correct:
-            correct  += 1
-            streak   += 1
-            is_new    = streak > best_streak
-            best_streak = max(best_streak, streak)
-            print(f"\n {U.GREEN}{U.praise()}  →  {article} {word['es']}{RESET}{U.streak_display(streak)}")
-            if is_new and streak >= 3:
-                print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
-            U.play_correct()
-            U.streak_milestone(streak)
+            s.right(f"{U.praise()}  →  {article} {word['es']}")
         else:
-            prev_streak = streak
-            streak = 0
-            print(f"\n {U.GRAY}It's  {BOLD}{article} {word['es']}{RESET}  {U.GRAY}{U.wrong_msg(prev_streak)}{RESET}")
-            U.play_wrong()
+            s.wrong(f"It's  {BOLD}{article} {word['es']}{RESET}  {U.GRAY}")
 
-        U.checkpoint(total)
-
-        if rounds > 0 and total >= rounds:
-            print(f"\n {U.CYAN}{BOLD}Round complete!{RESET}")
+        if not s.advance(was_correct):
             break
 
-        U.pause(ok=was_correct)
-
-    S.update("gender", correct, total, best_streak)
-    U.summary(correct, total, best_streak, elapsed=int(time.time() - start))
-    input(" Enter to return to menu...")
+    s.end("gender")

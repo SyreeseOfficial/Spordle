@@ -92,3 +92,9 @@
 - **Wrong-answer "close call" detection** — if player's answer differs from correct by only 1 character (Levenshtein distance 1), show `¡Casi! (Almost!)` instead of the generic wrong message; less discouraging for typos
 - **Session mood prompt** — on startup after the greeting, one-line: `¿Cómo te sientes hoy? [1] Sharp  [2] Okay  [3] Tired` and adjust: Sharp=hard pool, Tired=easy pool+hints on; skippable with Enter; takes 2 seconds and personalizes the session
 - **Rapid Fire personal record ghost** — during a Rapid Fire run, show your previous best score as a ghost target: `best: 23  current: 17  gap: -6`; simple subtraction, high motivational value
+
+## Release
+
+- [ ] Upload this to AUR
+- [ ] Take better screenshots for github
+- [ ] Publish to my portfolio site

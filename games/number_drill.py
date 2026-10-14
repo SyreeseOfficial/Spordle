@@ -1,6 +1,5 @@
-import random, time
+import random
 from . import utils as U
-from . import stats as S
 from .utils import SETTINGS, BOLD, RESET
 
 _ONES = ["cero","uno","dos","tres","cuatro","cinco","seis","siete",
@@ -25,7 +24,15 @@ def _to_es(n):
     parts = []
     if n >= 1000:
         t = n // 1000
-        parts.append("mil" if t == 1 else _to_es(t) + " mil")
+        if t == 1:
+            parts.append("mil")
+        else:
+            pre = _to_es(t)  # "uno" shortens before mil: veintiún mil, treinta y un mil
+            if pre.endswith("veintiuno"):
+                pre = pre[:-9] + "veintiún"
+            elif pre.endswith("uno"):
+                pre = pre[:-3] + "un"
+            parts.append(pre + " mil")
         n %= 1000
     if n >= 100:
         h, r = n // 100, n % 100
@@ -38,21 +45,29 @@ def _to_es(n):
         parts.append(_TWENTIES[n] if n in _TWENTIES else _ONES[n])
     return " ".join(parts)
 
-_RANGES = {"easy": (0, 20), "medium": (0, 100), "hard": (0, 1000)}
+def _variants(n):
+    """Older spellings still accepted: diez y seis, veinte y uno."""
+    if 16 <= n <= 19:  return [f"diez y {_ONES[n - 10]}"]
+    if 21 <= n <= 29:  return [f"veinte y {_ONES[n - 20]}"]
+    return []
+
+def _pick(lo, hi):
+    """Choose the digit count first so 1- and 2-digit numbers get practice too."""
+    d = random.randint(len(str(lo)), len(str(hi)))
+    return random.randint(max(lo, 10 ** (d - 1) if d > 1 else 0), min(hi, 10 ** d - 1))
+
+_RANGES = {"easy": (0, 20), "medium": (0, 99), "hard": (0, 999)}
 
 def play():
     lo, hi = _RANGES[SETTINGS["difficulty"]]
-
-    correct = total = streak = best_streak = 0
-    rounds  = SETTINGS["rounds"]
-    start   = time.time()
+    s = U.Session("NUMBER DRILL")
 
     while True:
-        n      = random.randint(lo, hi)
+        n      = _pick(lo, hi)
         answer = _to_es(n)
 
         U.clear()
-        U.game_header("NUMBER DRILL", correct, total, streak, best=best_streak)
+        s.header()
         print(f" Type this number in Spanish:\n")
         print(f"  {BOLD}{n}{RESET}\n")
 
@@ -60,33 +75,14 @@ def play():
         if guess == "q":
             break
 
-        total += 1
-        ok    = U.match(guess, answer)
+        ok = any(U.match(guess, a) for a in [answer] + _variants(n))
         if ok:
-            correct += 1
-            streak  += 1
-            is_new   = streak > best_streak
-            best_streak = max(best_streak, streak)
-            exact_note = f"  {U.GRAY}(full: {answer}){RESET}" if guess.lower() != answer else ""
-            print(f"\n {U.GREEN}{U.praise()}  →  {answer}{RESET}{exact_note}{U.streak_display(streak)}")
-            if is_new and streak >= 3:
-                print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
-            U.play_correct()
-            U.streak_milestone(streak)
+            note = f"  {U.GRAY}(full: {answer}){RESET}" if guess != answer else ""
+            s.right(f"{U.praise()}  →  {answer}", note=note)
         else:
-            prev_streak = streak
-            streak = 0
-            print(f"\n {U.GRAY}Answer: {BOLD}{answer}{RESET}  {U.GRAY}{U.wrong_msg(prev_streak)}{RESET}")
-            U.play_wrong()
+            s.wrong(f"Answer: {BOLD}{answer}{RESET}  {U.GRAY}")
 
-        U.checkpoint(total)
-
-        if rounds > 0 and total >= rounds:
-            print(f"\n {U.CYAN}{BOLD}Round complete!{RESET}")
+        if not s.advance(ok):
             break
 
-        U.pause(ok=ok)
-
-    S.update("number_drill", correct, total, best_streak)
-    U.summary(correct, total, best_streak, elapsed=int(time.time() - start))
-    input(" Enter to return to menu...")
+    s.end("number_drill")

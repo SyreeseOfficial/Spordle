@@ -1,3 +1,0 @@
-- [ ] Upload this to AUR
-- [ ] Take better screenshots for github
-- [ ] Publish to my portfolio site

@@ -6,7 +6,7 @@ Multi-game Spanish language practice tool for the terminal. Target user: interme
 
 **Runtime:** Python, stdlib only.
 **Word list:** Bilingual (Spanish ↔ English pairs). 5-letter subset for Wordle/Hangman/Anagram. Full vocab for everything else.
-**Accent marks:** Option C for v1 — no accented words in pool. Removes input friction, vocab practice still works. Revisit later.
+**Accent marks:** The pool includes accented words (~17%, incl. `ñ`). Matching ignores accents by default (Strict Accents setting turns that on); `ñ` is always required. Wordle/Anagram use only the 5-letter ASCII subset.
 
 ---
 
@@ -26,7 +26,7 @@ Multi-game Spanish language practice tool for the terminal. Target user: interme
 
 ## Key Decisions
 
-1. **Accent marks:** No accented words in v1 word pool (Option C). Revisit for v2.
+1. **Accent marks:** Accented words are in the pool; accent-insensitive matching by default, `ñ` always significant.
 2. **Word list:** Done — 5,000 frequency-ranked bilingual pairs.
 3. **Verb conjugation data:** Done — 637 verbs across 5 tenses.
 4. **False friends list:** Done — 40 hand-curated entries.
@@ -37,8 +37,7 @@ Multi-game Spanish language practice tool for the terminal. Target user: interme
 
 | File | Contents | Count |
 |---|---|---|
-| `words.json` | Bilingual ES↔EN pairs, frequency-ranked. Fields: `es`, `en`, `pos` | 5,000 words |
-| `words_5letter.json` | Subset of words.json, 5-letter ASCII-only Spanish words (for Wordle/Hangman/Anagram) | 584 words |
+| `words.json` | Bilingual ES↔EN pairs, frequency-ranked. Fields: `es`, `en`, `pos`, optional `g` (m/f/x gender) and `cognate` | 5,000 words |
 | `verbs.json` | 637 verbs with conjugations. Fields: `en`, `tenses → {person: form}` | 637 verbs |
 | `false_friends.json` | Hand-curated false friends. Fields: `es`, `looks_like`, `real_en` | 40 entries |
 
@@ -80,14 +79,13 @@ games/
   stakes.py             ← wager chips (1-5) on each answer + double-or-nothing offers
 data/
   words.json
-  words_5letter.json
   verbs.json
   false_friends.json
 ```
 
 **Known gaps:**
 - Translation gloss quality uneven (Wiktionary parse artifacts)
-- Gender heuristic misses -e endings and some exceptions
+- Gender uses the `g` field where set, falling back to an ending heuristic
 
 ---
 

@@ -1,28 +1,36 @@
-import time, random
+import random, select, sys, time
 from . import utils as U
 from . import stats as S
 from .utils import SETTINGS, POOL, BOLD, RESET
 
 _TIMES = {1: 15, 2: 30, 3: 60}
 
-def _normalize(s):
-    s = U.strip_accents(s.lower().strip())
-    return s[3:].strip() if s.startswith("to ") else s
-
-def _check(guess, answer):
-    # Take first clean chunk — handles "to X", "X, Y", "X; Y", "X (note)"
-    ans = answer.lower().split(";")[0].split(",")[0].split("(")[0].strip()
-    return _normalize(guess) == _normalize(ans)
-
 def _timer_color(secs):
     if secs <= 5:  return f"{U.YELLOW}{BOLD}"
     if secs <= 15: return U.YELLOW
     return U.GREEN
 
+def _timed_input(prompt, remaining):
+    """input() that gives up when the round ends; None on timeout."""
+    print(prompt, end="", flush=True)
+    if not select.select([sys.stdin], [], [], remaining)[0]:
+        print()
+        return None
+    line = sys.stdin.readline()
+    if line == "":
+        raise EOFError
+    return line.rstrip("\n")
+
+def _flush_stdin():
+    try:
+        import termios
+        termios.tcflush(sys.stdin.fileno(), termios.TCIFLUSH)  # drop half-typed text
+    except Exception:
+        pass
+
 def play():
-    all_words = U.load("words.json")
-    pool_size = POOL[SETTINGS["difficulty"]]
-    words     = all_words[:pool_size]
+    words = U.load("words.json")[:POOL[SETTINGS["difficulty"]]]
+    words = [w for w in words if not w.get("cognate")] or words  # identical cognates are free points
 
     U.clear()
     print(f"\n{BOLD} RAPID FIRE{RESET}")
@@ -30,7 +38,7 @@ def play():
 
     if SETTINGS["rf_time"] > 0:
         limit = SETTINGS["rf_time"]
-        print(f" {SETTINGS['rf_time']}s round  {U.GRAY}(change in Settings → Rapid Fire Time){RESET}\n")
+        print(f" {limit}s round  {U.GRAY}(change in Settings → Rapid Fire Time){RESET}\n")
     else:
         print(" Answer as many as you can before time runs out.\n")
         print("  1. 15 seconds  — Sprint")
@@ -39,19 +47,12 @@ def play():
         choice = input(" [1/2/3, default 2] > ").strip()
         limit  = _TIMES.get(int(choice) if choice in ("1","2","3") else 2, 30)
 
-    direction = SETTINGS["direction"]
-    if direction == "ask":
-        print("\n Direction:")
-        print("  1. Spanish → English")
-        print("  2. English → Spanish")
-        d = input("\n [1/2, default 1] > ").strip()
-        es_to_en = d != "2"
-    else:
-        es_to_en = direction == "es_en"
+    es_to_en = U.ask_direction("RAPID FIRE")
 
     input(f"\n {BOLD}Ready? Press Enter to start your {limit}-second round...{RESET}")
 
-    correct = total = 0
+    correct = total = streak = best_streak = 0
+    quit_early = False
     start   = time.time()
 
     while True:
@@ -69,29 +70,38 @@ def play():
         print(f"\n{BOLD} RAPID FIRE{RESET}   {t_col}{secs}s left{RESET}   {U.GRAY}score {correct}/{total}{RESET}")
         U.hr()
 
-        guess = input(f" {BOLD}{prompt}{RESET}\n > ").strip()
-
-        # Check time after input returns
-        over = (time.time() - start) >= limit
-        total += 1
-        if _check(guess, answer):
-            correct += 1
-            print(f" {U.GREEN}✓  {answer}{RESET}")
-        else:
-            print(f" {U.GRAY}✗  {BOLD}{answer}{RESET}")
-
-        if over:
+        guess = _timed_input(f" {BOLD}{prompt}{RESET}  {U.GRAY}(Enter = skip, q = stop){RESET}\n > ", remaining)
+        if guess is None:
+            print(f" {U.GRAY}Time!{RESET}")
             time.sleep(0.8)
             break
+        guess = guess.strip()
+        if guess.lower() == "q":
+            quit_early = True
+            break
+        if not guess:   # skip: not counted as wrong
+            continue
+
+        total += 1
+        if U.check_answer(guess, U.accepted(word, es_to_en)):
+            correct += 1
+            streak  += 1
+            best_streak = max(best_streak, streak)
+            print(f" {U.GREEN}✓  {answer}{RESET}")
+        else:
+            streak = 0
+            print(f" {U.GRAY}✗  {BOLD}{answer}{RESET}")
 
         time.sleep(0.3)
 
+    _flush_stdin()
+
     # Results
     U.clear()
-    print(f"\n{BOLD} TIME'S UP!{RESET}")
+    print(f"\n{BOLD} {'ROUND STOPPED' if quit_early else 'TIME' + chr(39) + 'S UP!'}{RESET}")
     U.hr()
     pct       = int(correct / total * 100) if total else 0
-    per_min   = int(correct / (limit / 60)) if correct else 0
+    per_min   = int(correct / ((time.time() - start if quit_early else limit) / 60)) if correct else 0
     filled    = int(20 * correct / total) if total else 0
     bar       = U.GREEN + "█" * filled + U.GRAY + "░" * (20 - filled) + RESET
 
@@ -105,5 +115,8 @@ def play():
     elif pct >= 60:                print(f"  {U.YELLOW}Good pace! Keep pushing.{RESET}\n")
     else:                          print(f"  {U.GRAY}Speed comes with practice!{RESET}\n")
 
-    S.update("rapid_fire", correct, total, best_score=correct, best_per_min=per_min)
+    # best score is per time limit (a 60s run always beats a 15s one); stopped rounds don't set records
+    best = {} if quit_early else {f"best_score_{limit}": correct}
+    U.show_msgs(S.update("rapid_fire", correct, total, best_streak, seconds=int(time.time() - start),
+                         run=True, **best))
     input(" Enter to return to menu...")

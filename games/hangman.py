@@ -1,7 +1,9 @@
-import random, time
+import contextlib, io, random
 from . import utils as U
-from . import stats as S
-from .utils import SETTINGS, POOL_5L, BOLD, RESET
+from .utils import SETTINGS, POOL, BOLD, RESET
+
+# word length by difficulty: the setting changes how hard the words are, not just how rare
+_LENGTHS = {"easy": (5, 5), "medium": (6, 7), "hard": (8, 99)}
 
 _STAGES = [
     ["       ", " +---+ ", " |   | ", "       ", "       ", "       ", " ===== "],
@@ -13,52 +15,70 @@ _STAGES = [
     ["       ", " +---+ ", " |   | ", "  O    ", " /|\\  ", " / \\  ", " ===== "],
 ]
 
-def _draw(wrong, word, guessed, col):
-    stage = _STAGES[min(wrong, 6)]
-    for line in stage:
-        print(f"  {col}{line}{RESET}")
+def _draw(wrong, word, norm, guessed, col):
+    # gallows stay gray, the figure takes the stage color
+    for i, line in enumerate(_STAGES[min(wrong, 6)]):
+        print(f"  {col if 3 <= i <= 5 else U.GRAY}{line}{RESET}")
     print()
-    display = "  " + "  ".join(c.upper() if c in guessed else "_" for c in word)
+    display = "  " + "  ".join(c.upper() if n in guessed else "_" for c, n in zip(word, norm))
     print(f"{BOLD}{display}{RESET}\n")
 
-def play():
-    all_words = U.load("words_5letter.json")
-    pool      = all_words[:POOL_5L[SETTINGS["difficulty"]]]
-    word_map  = {w["es"].lower(): w["en"] for w in pool}
-    word_list = list(word_map.keys())
+def _board(s, wrong, target, norm, guessed, col, outcome):
+    """Redraw the finished board, then print the outcome (counted before the header is drawn)."""
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        outcome()
+    U.clear()
+    s.header()
+    _draw(wrong, target, norm, guessed, col)
+    print(buf.getvalue(), end="")
 
-    wins = losses = streak = best_streak = 0
-    start = time.time()
+def play():
+    lo, hi = _LENGTHS[SETTINGS["difficulty"]]
+    pool   = [w for w in U.load("words.json")[:POOL[SETTINGS["difficulty"]]]
+              if w["es"].isalpha() and lo <= len(w["es"]) <= hi]
+
+    s = U.Session("HANGMAN", limit=False)
 
     while True:
-        target  = random.choice(word_list)
+        entry   = random.choice(pool)
+        target  = entry["es"].lower()
+        norm    = U.strip_accents(target)   # guesses ignore accents; ñ is its own letter
         guessed = set()
         wrong   = 0
         won     = False
 
         while wrong < 6:
-            solved = all(c in guessed for c in target)
-            if solved:
+            if all(n in guessed for n in norm):
                 won = True
                 break
 
-            wrong_letters = sorted(c for c in guessed if c not in target)
-            col = U.GREEN if wrong == 0 else U.YELLOW if wrong < 4 else U.GRAY
+            wrong_letters = sorted(c for c in guessed if c not in norm)
+            col = U.GREEN if wrong == 0 else U.YELLOW if wrong < 4 else U.RED
 
             U.clear()
-            U.game_header("HANGMAN", wins, wins + losses, streak, best=best_streak)
-            _draw(wrong, target, guessed, col)
+            s.header()
+            _draw(wrong, target, norm, guessed, col)
 
             wrong_str = " ".join(l.upper() for l in wrong_letters) or "—"
             print(f"  {U.GRAY}Wrong ({wrong}/6):{RESET}  {wrong_str}\n")
 
-            guess = input(" Letter  [q = menu] > ").strip().lower()
+            guess = input(" Letter or whole word  [q = menu] > ").strip().lower()
             if guess == "q":
-                S.update("hangman", wins, wins + losses, best_streak)
-                U.summary(wins, wins + losses, best_streak, elapsed=int(time.time() - start))
-                input(" Enter to return to menu...")
+                s.end("hangman")
                 return
-            if len(guess) != 1 or not guess.isalpha():
+            if not guess.isalpha():
+                print(f"  {U.GRAY}Letters only.{RESET}")
+                input()
+                continue
+            guess = U.strip_accents(guess)
+            if len(guess) > 1:
+                if guess == norm:
+                    guessed.update(norm)
+                else:
+                    wrong += 1
+                    print(f"  {U.GRAY}'{guess}' isn't the word.{RESET}")
+                    input()
                 continue
             if guess in guessed:
                 print(f"  {U.GRAY}Already guessed '{guess.upper()}'{RESET}")
@@ -66,40 +86,19 @@ def play():
                 continue
 
             guessed.add(guess)
-            if guess not in target:
+            if guess not in norm:
                 wrong += 1
         else:
-            # Ran out of guesses — check if solved on last guess
-            won = all(c in guessed for c in target)
+            won = all(n in guessed for n in norm)
 
-        total = wins + losses + 1
         if won:
-            wins   += 1
-            streak += 1
-            is_new  = streak > best_streak
-            best_streak = max(best_streak, streak)
-            U.clear()
-            U.game_header("HANGMAN", wins, total, streak, best=best_streak)
-            _draw(wrong, target, guessed, U.GREEN)
-            print(f" {U.GREEN}{BOLD}{U.praise()}  →  {target} = {word_map[target]}{RESET}{U.streak_display(streak)}")
-            if is_new and streak >= 3:
-                print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
-            U.play_correct()
-            U.streak_milestone(streak)
+            _board(s, wrong, target, norm, guessed, U.GREEN,
+                   lambda: s.right(f"{U.praise()}  →  {target} = {entry['en']}"))
         else:
-            prev_streak = streak
-            losses += 1
-            streak  = 0
-            U.clear()
-            U.game_header("HANGMAN", wins, total, streak, best=best_streak)
-            _draw(6, target, set(target), U.GRAY)  # reveal full word
-            print(f" {U.GRAY}The word was: {BOLD}{target}{RESET}  {U.GRAY}({word_map[target]})  {U.wrong_msg(prev_streak)}{RESET}")
-            U.play_wrong()
+            _board(s, 6, target, norm, set(norm), U.GRAY,   # reveal full word
+                   lambda: s.wrong(f"The word was: {BOLD}{target}{RESET}  {U.GRAY}({entry['en']})  "))
 
-        cont = U.yn_input("\n Play again? [Y/n] > ")
-        if cont is not True:
+        if U.yn_input("\n Play again? [Y/n] > ") is not True:
             break
 
-    S.update("hangman", wins, wins + losses, best_streak)
-    U.summary(wins, wins + losses, best_streak, elapsed=int(time.time() - start))
-    input(" Enter to return to menu...")
+    s.end("hangman")

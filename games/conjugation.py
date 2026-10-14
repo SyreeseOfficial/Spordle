@@ -1,7 +1,6 @@
-import random, time
+import random
 from . import utils as U
-from . import stats as S
-from .utils import SETTINGS, TENSES, BOLD, RESET
+from .utils import SETTINGS, TENSES, POOL, BOLD, RESET
 
 _LABELS = {
     "Indicativo/Presente":   "Present",
@@ -19,14 +18,38 @@ def _show_paradigm(tense_data, correct_person):
         print(f"  {marker} {person:<14} {BOLD}{form}{RESET}")
 
 def _is_irregular(inf, data):
-    yo = data["tenses"].get("Indicativo/Presente", {}).get("yo", "")
-    if not yo or not inf.endswith(("ar", "er", "ir")):
+    """Irregular present yo or irregular él preterite (reflexive pronouns ignored)."""
+    base = inf[:-2] if inf.endswith("se") else inf
+    if not base.endswith(("ar", "er", "ir")):
         return False
-    return yo != inf[:-2] + "o"
+    stem = base[:-2]
+    t    = data["tenses"]
+    yo   = t.get("Indicativo/Presente", {}).get("yo", "").split(" ")[-1]
+    el   = t.get("Indicativo/Pretérito", {}).get("él/ella", "").split(" ")[-1]
+    if not yo:
+        return False
+    if yo != stem + "o":
+        return True
+    return bool(el) and el != stem + ("ó" if base.endswith("ar") else "ió")
+
+def _accent_warning(verb_tenses, guess, answer, answer_label):
+    """If the unaccented guess is really another form of this verb, say which."""
+    g = guess.lower().strip()
+    for tense, forms in verb_tenses.items():
+        for person, form in forms.items():
+            if form.lower() == g and form.lower() != answer.lower():
+                other = f"{person} {_LABELS.get(tense, tense)}"
+                return (f"  {U.YELLOW}⚠ accent matters: {answer} ({answer_label}) ≠ {g} ({other}){RESET}")
+    return ""
 
 def play():
     verbs    = U.load("verbs.json")
     inf_list = list(verbs.keys())
+
+    # Difficulty also limits verb rarity: keep verbs found in the current word pool
+    known    = {w["es"] for w in U.load("words.json")[:POOL[SETTINGS["difficulty"]]]}
+    common   = [v for v in inf_list if v in known or (v.endswith("se") and v[:-2] in known)]
+    inf_list = common or inf_list
 
     verb_type = SETTINGS["verb_type"]
     if verb_type != "all":
@@ -37,26 +60,26 @@ def play():
         input(" Enter to return to menu...")
         return
 
-    correct  = total = streak = best_streak = 0
-    rounds   = SETTINGS["rounds"]
-    start    = time.time()
+    allowed = TENSES[SETTINGS["difficulty"]]
+    s       = U.Session("VERB CONJUGATION")
 
     while True:
-        allowed   = TENSES[SETTINGS["difficulty"]]
-        inf       = random.choice(inf_list)
-        data      = verbs[inf]
-        valid     = [t for t in data["tenses"] if t in allowed]
-        if not valid:
+        inf   = random.choice(inf_list)
+        data  = verbs[inf]
+        # skip the (few) verbs with blank forms, e.g. weather verbs
+        cands = [(t, p) for t in data["tenses"] if t in allowed
+                 for p in _PERSONS if data["tenses"][t].get(p)]
+        if not cands:
             continue
-        tense_key = random.choice(valid)
-        person    = random.choice(_PERSONS)
-        answer    = data["tenses"][tense_key][person]
-        label     = _LABELS.get(tense_key, tense_key)
+        tense_key, person = random.choice(cands)
+        answer = data["tenses"][tense_key][person]
+        label  = _LABELS.get(tense_key, tense_key)
 
         U.clear()
-        U.game_header("VERB CONJUGATION", correct, total, streak, best=best_streak)
+        s.header()
         vt_tag = f"  {U.GRAY}[{verb_type}]{RESET}" if verb_type != "all" else ""
-        print(f" {BOLD}{inf}{RESET}  ({data['en']}){vt_tag}")
+        refl   = f"  {U.GRAY}(reflexive: include me/te/se){RESET}" if inf.endswith("se") else ""
+        print(f" {BOLD}{inf}{RESET}  ({data['en']}){vt_tag}{refl}")
         print(f" Tense:  {BOLD}{label}{RESET}")
         print(f" Person: {BOLD}{person}{RESET}\n")
 
@@ -64,34 +87,18 @@ def play():
         if guess.lower() == "q":
             break
 
-        total += 1
         was_correct = U.match(guess, answer)
         if was_correct:
-            correct  += 1
-            streak   += 1
-            is_new    = streak > best_streak
-            best_streak = max(best_streak, streak)
-            exact_note = f"  {U.GRAY}(full: {answer}){RESET}" if guess.lower() != answer.lower() else ""
-            print(f"\n {U.GREEN}{U.praise()}{RESET}{exact_note}{U.streak_display(streak)}")
-            if is_new and streak >= 3:
-                print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
-            U.play_correct()
-            U.streak_milestone(streak)
+            note = ""
+            if guess.lower() != answer.lower():
+                note = (_accent_warning(data["tenses"], guess, answer, label)
+                        or f"  {U.GRAY}(full: {answer}){RESET}")
+            s.right(note=note)
         else:
-            prev_streak = streak
-            streak = 0
-            print(f"\n {U.GRAY}Answer: {BOLD}{answer}{RESET}  {U.GRAY}{U.wrong_msg(prev_streak)}{RESET}")
+            s.wrong(f"Answer: {BOLD}{answer}{RESET}  {U.GRAY}")
             _show_paradigm(data["tenses"][tense_key], person)
-            U.play_wrong()
 
-        U.checkpoint(total)
-
-        if rounds > 0 and total >= rounds:
-            print(f"\n {U.CYAN}{BOLD}Round complete!{RESET}")
+        if not s.advance(was_correct):
             break
 
-        U.pause(ok=was_correct)
-
-    S.update("conjugation", correct, total, best_streak)
-    U.summary(correct, total, best_streak, elapsed=int(time.time() - start))
-    input(" Enter to return to menu...")
+    s.end("conjugation")

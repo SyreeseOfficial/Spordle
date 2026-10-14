@@ -1,7 +1,21 @@
-import json, os, random, time, unicodedata
+import functools, json, os, random, shutil, sys, time, unicodedata
+from . import sounds
 
-_DATA          = os.path.join(os.path.dirname(__file__), "..", "data")
-_SETTINGS_PATH = os.path.expanduser("~/.spordle_settings.json")
+_DATA = os.path.join(os.path.dirname(__file__), "..", "data")
+
+def _xdg(var, default):
+    return os.path.join(os.environ.get(var) or os.path.expanduser(default), "spordle")
+
+CONFIG_DIR    = _xdg("XDG_CONFIG_HOME", "~/.config")
+DATA_DIR      = _xdg("XDG_DATA_HOME",   "~/.local/share")
+SETTINGS_PATH = os.path.join(CONFIG_DIR, "settings.json")
+STATS_PATH    = os.path.join(DATA_DIR,   "stats.json")
+QUESTS_PATH   = os.path.join(DATA_DIR,   "quests.json")
+EXPORT_PATH   = os.path.join(DATA_DIR,   "export.csv")
+
+_OLD_PATHS = (("~/.spordle_settings.json", SETTINGS_PATH),
+              ("~/.spordle_stats.json",    STATS_PATH),
+              ("~/.spordle_quests.json",   QUESTS_PATH))
 
 BOLD  = "\033[1m"
 DIM   = "\033[2m"
@@ -12,22 +26,40 @@ GREEN  = "\033[92m"
 YELLOW = "\033[93m"
 GRAY   = "\033[90m"
 CYAN   = "\033[96m"
+RED    = "\033[91m"
 
 _THEMES = {
-    "default": ("\033[92m", "\033[93m", "\033[90m", "\033[96m"),
-    "ocean":   ("\033[94m", "\033[96m", "\033[90m", "\033[95m"),
-    "sunset":  ("\033[91m", "\033[95m", "\033[90m", "\033[93m"),
-    "mono":    ("\033[1m",  "\033[2m",  "\033[2m",  "\033[1m"),
+    "default": ("\033[92m", "\033[93m", "\033[90m", "\033[96m", "\033[91m"),
+    "ocean":   ("\033[94m", "\033[96m", "\033[90m", "\033[95m", "\033[91m"),
+    "sunset":  ("\033[91m", "\033[95m", "\033[90m", "\033[93m", "\033[31m"),
+    "mono":    ("\033[1m",  "\033[2m",  "\033[2m",  "\033[1m",  "\033[7m"),
 }
 
 def apply_theme(name):
-    global GREEN, YELLOW, GRAY, CYAN
-    GREEN, YELLOW, GRAY, CYAN = _THEMES.get(name, _THEMES["default"])
+    global GREEN, YELLOW, GRAY, CYAN, RED
+    GREEN, YELLOW, GRAY, CYAN, RED = _THEMES.get(name, _THEMES["default"])
     SETTINGS["theme"] = name
 
+_warned = False
+
+def save_json(path, obj):
+    """Atomic write; a read-only home must not crash the game."""
+    global _warned
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(obj, f, indent=2)
+        os.replace(tmp, path)
+        return True
+    except OSError as e:
+        if not _warned:
+            _warned = True
+            print(f" {YELLOW}Could not save to {path}: {e.strerror}{RESET}", file=sys.stderr)
+        return False
+
 def save_settings():
-    with open(_SETTINGS_PATH, "w") as f:
-        json.dump(SETTINGS, f, indent=2)
+    save_json(SETTINGS_PATH, SETTINGS)
 
 SETTINGS = {
     "difficulty":    "medium",
@@ -37,6 +69,7 @@ SETTINGS = {
     "hints":         False,
     "show_rank":     False,
     "verb_type":     "all",    # "all" | "irregular" | "regular"
+    "answer":        "reveal", # "reveal" (self-rate) | "type" (typed + auto-graded)
     "auto_advance":  False,    # skip Enter after correct answers
     "advance_delay": 0.5,      # seconds to wait in auto-advance mode
     "strict_accents":False,    # must type exact accented characters
@@ -47,6 +80,21 @@ SETTINGS = {
     "volume":        "medium", # sound volume: low / medium / high
     "favorites":     [],       # list of game names marked as favorites
 }
+
+# Allowed values for every cycled setting; also used to validate a hand-edited file.
+CHOICES = {
+    "difficulty":    ["easy", "medium", "hard"],
+    "theme":         ["default", "ocean", "sunset", "mono"],
+    "rounds":        [0, 5, 10, 25],
+    "direction":     ["ask", "es_en", "en_es"],
+    "verb_type":     ["all", "irregular", "regular"],
+    "answer":        ["reveal", "type"],
+    "advance_delay": [0.3, 0.5, 0.8, 1.0],
+    "rf_time":       [0, 15, 30, 60],
+    "rl_lives":      [1, 2, 3, 5],
+    "volume":        ["low", "medium", "high"],
+}
+_BOOLS = ("hints", "show_rank", "auto_advance", "strict_accents", "srs", "sounds")
 
 POOL    = {"easy": 500,  "medium": 2000, "hard": 5000}
 POOL_5L = {"easy": 150,  "medium": 350,  "hard": 584}
@@ -81,16 +129,54 @@ def load(filename):
     with open(os.path.join(_DATA, filename)) as f:
         return json.load(f)
 
+def five_letter():
+    """Wordle / Hangman / Anagram answer list: 5-letter ASCII words, frequency order."""
+    return [w for w in load("words.json") if len(w["es"]) == 5 and w["es"].isascii()]
+
 def strip_accents(s):
-    return "".join(c for c in unicodedata.normalize("NFD", s)
-                   if unicodedata.category(c) != "Mn")
+    # ñ is a letter, not an accent: protect it from NFD
+    s = s.replace("ñ", "\0").replace("Ñ", "\1")
+    s = "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+    return s.replace("\0", "ñ").replace("\1", "Ñ")
 
 def match(guess, answer):
     """Compare ignoring accents unless strict_accents is on."""
     g, a = guess.lower().strip(), answer.lower().strip()
+    if not g:
+        return False
     if SETTINGS.get("strict_accents"):
         return g == a
     return strip_accents(g) == strip_accents(a)
+
+def _norm(s):
+    s = s.lower().strip()
+    if not SETTINGS.get("strict_accents"):
+        s = strip_accents(s)
+    return s[3:].strip() if s.startswith("to ") else s
+
+def check_answer(guess, answers):
+    """Typed vocab answer: matches any ; , ( / separated chunk of any accepted answer."""
+    g = _norm(guess)
+    if not g:
+        return False
+    for a in answers:
+        for chunk in a.replace(";", "/").replace(",", "/").replace("(", "/").split("/"):
+            if g == _norm(chunk):
+                return True
+    return False
+
+@functools.lru_cache(maxsize=None)
+def _es_by_gloss():
+    d = {}
+    for w in load("words.json"):
+        d.setdefault(w["en"], []).append(w["es"])
+    return d
+
+def accepted(word, es_to_en):
+    """Every answer that counts: EN→ES accepts any Spanish word sharing the gloss."""
+    if es_to_en:
+        return [word["en"]]
+    return _es_by_gloss().get(word["en"], [word["es"]])
 
 def praise():  return random.choice(_PRAISE)
 def console(): return random.choice(_CONSOLE)
@@ -109,47 +195,17 @@ def checkpoint(total):
         pad = " " * max(0, (w - len(msg) - 6) // 2)
         print(f"\n{pad}{CYAN}✦ {msg} ✦{RESET}")
 
-def play_correct():
+def sfx(name, *args):
+    """Play a sound effect by name; returns the playback thread (or None)."""
     try:
-        from . import sounds as _S
-        _S.correct()
+        return getattr(sounds, name)(*args)
     except Exception:
-        pass
+        return None
 
-def play_wrong():
-    try:
-        from . import sounds as _S
-        _S.wrong()
-    except Exception:
-        pass
-
-def play_navigate():
-    try:
-        from . import sounds as _S
-        _S.navigate()
-    except Exception:
-        pass
-
-def play_back():
-    try:
-        from . import sounds as _S
-        _S.back()
-    except Exception:
-        pass
-
-def play_toggle(on):
-    try:
-        from . import sounds as _S
-        (_S.toggle_on if on else _S.toggle_off)()
-    except Exception:
-        pass
-
-def play_game_over():
-    try:
-        from . import sounds as _S
-        _S.game_over()
-    except Exception:
-        pass
+def play_back_and_wait():
+    t = sfx("back")
+    if t:
+        t.join(0.5)  # daemon thread: give it a moment before the process exits
 
 def terminal_width():
     try:
@@ -194,16 +250,58 @@ def pause(ok=False):
         input("\n Enter to continue...")
 
 def yn_input(prompt):
-    """Enter or 'y' = True, 'n' = False, 'q' = 'q'."""
-    r = input(prompt).strip().lower()
-    if r == "q":
+    """Enter/'y' = True, 'n' = False, 'q' = 'q'. Anything else asks again."""
+    while True:
+        r = input(prompt).strip().lower()
+        if r == "q":
+            return "q"
+        if r in ("", "y", "yes"):
+            return True
+        if r in ("n", "no"):
+            return False
+        print(f" {GRAY}Type y, n, or q.{RESET}")
+
+def ask(prompt, answers, shown=None, flip=False, show_prompt=True, tail=""):
+    """One vocab question. 'reveal' mode: Enter, see answer, self-rate. 'type' mode: type it,
+    auto-graded. Returns True/False, or 'q' (quit) / 'f' (flip, only if flip=True)."""
+    typed = SETTINGS.get("answer") == "type"
+    head  = f" {BOLD}{prompt}{RESET}\n" if show_prompt else ""
+    raw   = input(f"{head} {'Type the answer' if typed else 'Enter to reveal'} > ").strip()
+    low   = raw.lower()
+    if low == "q":
         return "q"
-    return r != "n"
+    if flip and low == "f":
+        return "f"
+    print(f"\n   → {BOLD}{shown or answers[0]}{RESET}")
+    if tail:
+        print(tail)
+    if typed:
+        ok = check_answer(raw, answers)
+        print(f" {GREEN}✓{RESET}" if ok else f" {RED}✗{RESET}")
+        return ok
+    return yn_input("\n Got it? [Y/n] > ")
+
+def ask_direction(title, blurb=""):
+    """Returns es_to_en for the Direction setting, asking if set to 'ask'."""
+    direction = SETTINGS["direction"]
+    if direction != "ask":
+        return direction == "es_en"
+    clear()
+    print(f"\n{BOLD} {title}{RESET}")
+    hr()
+    if blurb:
+        print(blurb)
+    print("  1. Spanish → English  (easier)")
+    print("  2. English → Spanish  (harder)")
+    return input("\n [1/2, default 1] > ").strip() != "2"
+
+def streak_badge(n):
+    return "🔥" if n >= 5 else "⚡" if n >= 3 else ""
 
 def streak_display(n):
-    if n >= 10: return f"  {YELLOW}{BOLD}*** {n} STREAK — ¡FUEGO! ***{RESET}"
-    if n >= 5:  return f"  {YELLOW}** {n} in a row — ¡Caliente!{RESET}"
-    if n >= 3:  return f"  {GREEN}* {n} in a row!{RESET}"
+    if n >= 10: return f"  {YELLOW}{BOLD}🔥 {n} STREAK — ¡FUEGO!{RESET}"
+    if n >= 5:  return f"  {YELLOW}🔥 {n} in a row — ¡Caliente!{RESET}"
+    if n >= 3:  return f"  {GREEN}⚡ {n} in a row!{RESET}"
     return ""
 
 def streak_milestone(n):
@@ -221,40 +319,38 @@ def streak_milestone(n):
     print(f"\n{pad}{col}┌{'─' * len(msg)}┐{RESET}")
     print(f"{pad}{col}│{msg}│{RESET}")
     print(f"{pad}{col}└{'─' * len(msg)}┘{RESET}")
-    try:
-        from . import sounds as _S
-        _S.milestone(n)
-    except Exception:
-        pass
+    sfx("milestone", n)
 
-def _diff_color():
+def diff_color():
     d = SETTINGS["difficulty"]
-    return GREEN if d == "easy" else YELLOW if d == "medium" else "\033[91m"
+    return GREEN if d == "easy" else YELLOW if d == "medium" else RED
 
-def game_header(name, correct=0, total=0, streak=0, best=0):
-    diff     = SETTINGS["difficulty"].upper()
-    rounds   = SETTINGS["rounds"]
-    w        = terminal_width()
-    diff_col = _diff_color()
+def title_line(name, suffix=""):
+    """Centered 'NAME  [DIFF]' line; suffix is plain text appended after the tag."""
+    diff = SETTINGS["difficulty"].upper()
+    pad  = " " * max(0, (terminal_width() - len(f"{name}  [{diff}]{suffix}")) // 2)
+    print(f"\n{pad}{BOLD}{name}{RESET}  [{diff_color()}{diff}{RESET}]{suffix}")
 
-    rnd_str  = f"  {total}/{rounds}" if rounds > 0 else ""
-    visible  = f"{name}  [{diff}]{rnd_str}"
-    pad      = " " * max(0, (w - len(visible)) // 2)
-    print(f"\n{pad}{BOLD}{name}{RESET}  [{diff_col}{diff}{RESET}]{rnd_str}")
+def game_header(name, correct=0, total=0, streak=0, best=0, rounds=None):
+    w      = terminal_width()
+    rounds = SETTINGS["rounds"] if rounds is None else rounds
+
+    title_line(name, f"  {total}/{rounds}" if rounds > 0 else "")
 
     if rounds > 0:
         bar_w  = min(28, w - 4)
-        filled = int(bar_w * total / rounds) if total > 0 else 0
+        filled = min(bar_w, int(bar_w * total / rounds)) if total > 0 else 0
         bar    = GREEN + "█" * filled + GRAY + "░" * (bar_w - filled) + RESET
         bpad   = " " * max(0, (w - bar_w - 2) // 2)
         print(f"{bpad}[{bar}]")
 
     score_str = f"{correct}/{total}" if total else "—/—"
-    if   streak >= 10: stk_col, dots = f"{YELLOW}{BOLD}", " ***"
-    elif streak >= 5:  stk_col, dots = YELLOW,             " **"
-    elif streak >= 3:  stk_col, dots = GREEN,              " *"
-    else:              stk_col, dots = GRAY,               ""
-    stk_str  = f"{stk_col}streak {streak}{dots}{RESET}"
+    if   streak >= 10: stk_col = f"{YELLOW}{BOLD}"
+    elif streak >= 5:  stk_col = YELLOW
+    elif streak >= 3:  stk_col = GREEN
+    else:              stk_col = GRAY
+    badge    = f" {streak_badge(streak)}" if streak_badge(streak) else ""
+    stk_str  = f"{stk_col}streak {streak}{badge}{RESET}"
     best_str = f"   {GRAY}best {best}{RESET}" if best > 0 else ""
 
     print(f"\n {GRAY}score {score_str}{RESET}   {stk_str}{best_str}")
@@ -296,17 +392,90 @@ def summary(correct, total, best_streak, elapsed=0):
     print(f"\n  {bar}\n")
     print(f"  {col}{BOLD}{grade}{RESET}\n")
 
-def _load_settings():
-    if not os.path.exists(_SETTINGS_PATH):
-        return
-    try:
-        with open(_SETTINGS_PATH) as f:
-            saved = json.load(f)
-        for k in SETTINGS:
-            if k in saved:
-                SETTINGS[k] = saved[k]
-        apply_theme(SETTINGS["theme"])
-    except Exception:
-        pass
+def show_msgs(msgs):
+    for m in msgs or ():
+        print(f" {YELLOW}{BOLD}{m}{RESET}")
 
-_load_settings()
+class Session:
+    """Counters + feedback shared by every scored game (streaks, banners, sounds, summary)."""
+
+    def __init__(self, name, limit=True):
+        self.name   = name
+        self.rounds = SETTINGS["rounds"] if limit else 0
+        self.correct = self.total = self.streak = self.best = 0
+        self.start  = time.time()
+
+    def header(self):
+        game_header(self.name, self.correct, self.total, self.streak, self.best, rounds=self.rounds)
+
+    def right(self, text=None, note=""):
+        self.total   += 1
+        self.correct += 1
+        self.streak  += 1
+        is_new    = self.streak > self.best
+        self.best = max(self.best, self.streak)
+        print(f"\n {GREEN}{text or praise()}{RESET}{note}{streak_display(self.streak)}")
+        if is_new and self.streak >= 3:
+            print(f" {YELLOW}{BOLD}✦ NEW BEST STREAK! ✦{RESET}")
+        sfx("correct")
+        streak_milestone(self.streak)
+
+    def wrong(self, text=""):
+        """text is printed before the consolation line (include its own colors/GRAY)."""
+        self.total += 1
+        prev, self.streak = self.streak, 0
+        print(f"\n {GRAY}{text}{wrong_msg(prev)}{RESET}")
+        sfx("wrong")
+        return prev
+
+    def advance(self, ok):
+        """After feedback: checkpoint, round limit, pause. False when the round limit is hit."""
+        checkpoint(self.total)
+        if self.rounds > 0 and self.total >= self.rounds:
+            print(f"\n {CYAN}{BOLD}Round complete!{RESET}")
+            return False
+        pause(ok=ok)
+        return True
+
+    def end(self, game, footer="", **extra):
+        from . import stats as S
+        elapsed = int(time.time() - self.start)
+        msgs = S.update(game, self.correct, self.total, self.best, seconds=elapsed, **extra)
+        summary(self.correct, self.total, self.best, elapsed=elapsed)
+        show_msgs(msgs)
+        if footer:
+            print(footer)
+        input(" Enter to return to menu...")
+
+def _valid(key, val):
+    if key in CHOICES:
+        return not isinstance(val, bool) and val in CHOICES[key]
+    if key in _BOOLS:
+        return isinstance(val, bool)
+    if key == "favorites":
+        return isinstance(val, list) and all(isinstance(x, str) for x in val)
+    return False
+
+def _load_settings():
+    try:
+        with open(SETTINGS_PATH) as f:
+            saved = json.load(f)
+    except (OSError, ValueError):
+        return
+    if isinstance(saved, dict):
+        for k, v in saved.items():
+            if k in SETTINGS and _valid(k, v):
+                SETTINGS[k] = v
+    apply_theme(SETTINGS["theme"])
+
+def init():
+    """Move pre-XDG dotfiles into place once, then load saved settings."""
+    for old, new in _OLD_PATHS:
+        old = os.path.expanduser(old)
+        if os.path.exists(old) and not os.path.exists(new):
+            try:
+                os.makedirs(os.path.dirname(new), exist_ok=True)
+                shutil.move(old, new)
+            except OSError:
+                pass
+    _load_settings()

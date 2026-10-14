@@ -1,24 +1,20 @@
-import random, time
+import random
 from . import utils as U
-from . import stats as S
-from .utils import SETTINGS, BOLD, RESET
+from .utils import BOLD, RESET
 
 def play():
     friends = U.load("false_friends.json")
     random.shuffle(friends)
 
-    correct = total = streak = best_streak = 0
-    rounds  = SETTINGS["rounds"]
-    start   = time.time()
+    s = U.Session("FALSE FRIENDS")
 
     for entry in friends:
         U.clear()
-        U.game_header("FALSE FRIENDS", correct, total, streak, best=best_streak)
+        s.header()
         print(f" {BOLD}{entry['es']}{RESET}\n")
         print(f" {U.GRAY}Looks like:{RESET}  \"{entry['looks_like']}\"\n")
 
-        inp = U.yn_input(" What does it ACTUALLY mean?  [Enter to reveal  /  q = menu] > ")
-        if inp == "q":
+        if input(" What does it ACTUALLY mean?  [Enter to reveal  /  q = menu] > ").strip().lower() == "q":
             break
 
         print(f"\n {U.YELLOW}Actually:{RESET}  {BOLD}{entry['real_en']}{RESET}")
@@ -28,31 +24,12 @@ def play():
         if rating == "q":
             break
 
-        total += 1
         if rating:
-            correct  += 1
-            streak   += 1
-            is_new    = streak > best_streak
-            best_streak = max(best_streak, streak)
-            print(f"\n {U.GREEN}{U.praise()}{RESET}{U.streak_display(streak)}")
-            if is_new and streak >= 3:
-                print(f" {U.YELLOW}{BOLD}*** NEW BEST STREAK! ***{RESET}")
-            U.play_correct()
-            U.streak_milestone(streak)
+            s.right()
         else:
-            prev_streak = streak
-            streak = 0
-            print(f"\n {U.GRAY}{U.wrong_msg(prev_streak)}{RESET}")
-            U.play_wrong()
+            s.wrong()
 
-        U.checkpoint(total)
-
-        if rounds > 0 and total >= rounds:
-            print(f"\n {U.CYAN}{BOLD}Round complete!{RESET}")
+        if not s.advance(rating):
             break
 
-        U.pause(ok=rating)
-
-    S.update("false_friends", correct, total, best_streak)
-    U.summary(correct, total, best_streak, elapsed=int(time.time() - start))
-    input(" Enter to return to menu...")
+    s.end("false_friends")
