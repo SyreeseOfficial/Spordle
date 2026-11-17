@@ -62,8 +62,8 @@ spordle.py              ← entry point, 15-item menu with quest progress indica
 games/
   __init__.py
   utils.py              ← colors, themes, streak/summary helpers, yn_input(), SETTINGS
-  stats.py              ← persistent stats (~/.spordle_stats.json), show(), reset()
-  quests.py             ← daily quests (~/.spordle_quests.json), 3/day from pool of 13
+  stats.py              ← persistent stats (now `~/.local/share/spordle/stats.json`), show(), reset()
+  quests.py             ← daily quests (now `~/.local/share/spordle/quests.json`), 3/day from pool of 15
   settings.py           ← settings menu (difficulty, theme, rounds, direction, hints, rank, verb type, reset)
   translation.py        ← flashcard ES↔EN, hints, word rank, TILT mechanic
   wordle.py             ← 6-guess, color feedback, keyboard tracker, daily+random modes
@@ -91,6 +91,9 @@ data/
 
 ## Session Log
 
+> History only. Current paths, settings and counts are in README.md.
+
+
 ### 2026-06-27 — Session 1
 
 - Decided on multi-game suite (started as Wordle-only)
@@ -109,7 +112,7 @@ data/
 
 **Sound effects, aliveness + AUR packaging:**
 
-- **Sound effects** (`games/sounds.py`): Procedurally generated tones via stdlib `wave`+`math`+`struct` — no assets, no pip installs. Plays async via `aplay`/`afplay` subprocess + threading. Toggle via Settings option 13.
+- **Sound effects** (`games/sounds.py`): Procedurally generated tones via stdlib `wave`+`math`+`struct` — no assets, no pip installs. Plays async via `aplay`/`afplay` subprocess + threading. Toggle via Settings (see README.md for current numbering).
   - `correct()`: 880Hz ping; `wrong()`: detuned 220/233Hz buzz; `milestone(n)`: ascending chords at streaks 5/10/25; `game_over()`: descending 3-note A-F#-D
   - Navigation sounds: `navigate()` (523Hz click on menu/settings select), `back()` (370Hz on exit), `toggle_on()`/`toggle_off()` (ascending/descending chirp on settings toggles)
 - **More alive features:**
@@ -118,14 +121,14 @@ data/
   - `wrong_msg(prev_streak)`: context-aware wrong messages — streak of 7+ says "¡Ay no! 7 streak gone." instead of generic
   - `checkpoint(total)`: `✦ 10 rounds — ¡En racha! ✦` flash at 10/25/50/100 rounds
   - Last session shown in main menu: `last: translation  84%  streak 12`
-- **Settings tightened**: removed blank lines between options — all 14 settings now visible at once
+- **Settings tightened**: removed blank lines between options — settings list: see README.md
 - **PKGBUILD** added for AUR packaging as `spordle-git`. `depends=('python' 'alsa-utils')` ensures `aplay` auto-installs. Installs to `/usr/lib/spordle/` with wrapper at `/usr/bin/spordle`.
 
 ### 2026-06-28 — Session 8
 
 **Settings polish + visual + QoL:**
 
-- **5 new settings** (now 14 total, grouped in GAMEPLAY/DISPLAY/BEHAVIOUR/MODES/DATA):
+- **5 new settings** (count has grown; see README.md; grouped in GAMEPLAY/DISPLAY/BEHAVIOUR/MODES/DATA):
   - Auto-Advance: correct answers auto-advance after 0.5s
   - Strict Accents: enforces exact typed characters (dieciséis vs dieciseis)
   - Spaced Repetition (SRS): 40% pull rate from missed-word list, persisted between sessions
@@ -141,12 +144,12 @@ data/
 - **Roguelike** (game 10): 3 lives (♥♥♥), wrong answer costs a life, run ends at 0. Chase best score. Loss aversion loop.
 - **Push Your Luck** (game 11): bank points safely or push for an increasing multiplier. Wrong answer loses the whole push pile. Bank/push choice after every correct answer.
 - **High Stakes** (game 12): bet 1-5 chips per question on your confidence. Double-or-nothing offer after each correct answer (doubles both gain and risk next round). Start with 100 chips, bust = game over.
-- **Daily Quests** (game 13): 3 quests generated fresh each day from a pool of 13. Progress tracked vs stats snapshot at quest-gen time. Quest progress shown live in the main menu header (⚡ 0/3).
+- **Daily Quests** (game 13): 3 quests generated fresh each day from a pool of 15. Progress tracked vs stats snapshot at quest-gen time. Quest progress shown live in the main menu header (⚡ 0/3).
 - **Tilt mechanic** in Translation: 3 consecutive wrong answers → TILT fires, next 5 questions draw from top-200 easiest words. Prevents frustration exits.
 - **Persistent stats** (game 14 / My Stats): all 12 games tracked to `~/.spordle_stats.json`. Per-game: rounds, correct, best streak. Roguelike: best run. Push Your Luck: best banked. High Stakes: peak chips.
 - **Verb type filter** (Settings 7): filter Conjugation to irregular/regular/all. Detected via present-tense yo-form heuristic (190 irregular, 447 regular out of 637).
 - **Number Drill** (game 9): type any number 0-1000 in Spanish. Difficulty controls range. Accents optional.
-- **Reset Stats** (Settings 8): wipes `~/.spordle_stats.json` after confirmation.
+- **Reset Stats** (Settings 8): wipes the stats file after confirmation.
 - Menu now shows gambling section separator and quest indicator in header.
 
 ### 2026-06-27 — Session 5
